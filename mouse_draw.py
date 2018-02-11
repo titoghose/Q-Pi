@@ -1,4 +1,4 @@
-import cv2
+'''import cv2
 import numpy as np
 
 ix, iy = 0, 0
@@ -24,3 +24,7 @@ cv2.setMouseCallback('image', handle_mouse)
 while True:
     cv2.imshow('image', mat)
     cv2.waitKey(1)
+'''
+
+for i in range(1, 180, 1):
+    print i, " : ", ((i/3 - 1) / 6) * 9
