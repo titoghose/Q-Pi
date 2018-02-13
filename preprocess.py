@@ -3,6 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.spatial import ConvexHull
+from mpl_toolkits import mplot3d
 
 ix, iy, fx, fy = 0, 0, 0, 0
 drawing = False
@@ -36,10 +37,10 @@ while True:
 final_contours = []
 final_contours = np.array(final_contours)
 
-try:
-    os.mkdir("./contours" + str(ix) + "_" + str(iy) + "_" + str(fx) + "_" + str(fy) + "/")
-except OSError:
-    None
+# try:
+#     os.mkdir("./contours" + str(ix) + "_" + str(iy) + "_" + str(fx) + "_" + str(fy) + "/")
+# except OSError:
+#     None
 
 for ind, i in enumerate(os.listdir("./membrane_cell/c2/")):
     if i.startswith("."):
@@ -68,60 +69,66 @@ for ind, i in enumerate(os.listdir("./membrane_cell/c2/")):
 
     img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
 
-    img_temp = np.zeros(img.shape)
+    img_temp = np.zeros(img.shape, dtype='uint8')
 
-    new_contours = contours
-    # new_contours = []
-    # for j, c in enumerate(contours):
-    #     area = cv2.contourArea(c)
-    #     if area > 50:
-    #         new_contours.append(c)
+    new_contours = np.array([])
+    maxArea = 0
+    maxInd = -1
+    for x, cont in enumerate(contours):
+        if cv2.contourArea(cont) > maxArea and cv2.contourArea(cont) > 50:
+            maxArea = cv2.contourArea(cont)
+            maxInd = x
+    if len(contours) != 0 and maxInd != -1:
+        new_contours = np.squeeze(np.array(contours[maxInd]))
 
-    if len(new_contours) != 0:
-        new_contours = np.squeeze(np.array(new_contours))
+    if new_contours.shape[0] != 0:
         ellipse = cv2.fitEllipse(new_contours)
         img = cv2.ellipse(img_temp, ellipse, (255, 255, 255), -1)
 
-    _, contours, hierarchy = cv2.findContours(img, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_TC89_L1)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        im = img.copy()
 
-    # img = cv2.drawContours(img, new_contours, -1, (0, 255, 0), 1)
+        _, contours, hierarchy = cv2.findContours(im, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_SIMPLE)
+        img = cv2.drawContours(np.zeros((100, 100, 3), dtype='uint8'), contours, 0, (255, 255, 255),
+                               1)
 
-    # try:
-    #     cont = np.array(new_contours[0])
-    #     cont = np.squeeze(cont)
-    #
-    #     fig = plt.figure()
-    #     ch = ConvexHull(cont)
-    #     plt.ylim(0, 60)
-    #     plt.xlim(0, 60)
-    #     for s in ch.simplices:
-    #         plt.plot(cont[s, 0], cont[s, 1], 'k-')
-    #     fig.savefig("./contours" + str(ix) + "_" + str(iy) + "_" + str(fx) + "_" + str(fy) + "/" + i)
-    #     print "./contours" + str(ix) + "_" + str(iy) + "_" + str(fx) + "_" + str(fy) + "/" + i
-    #     plt.close(fig)
-    #
-    #     cont = (cont * 2048 * 0.0695) / 480.
-    #     cont = np.insert(cont, 2, (ind + 1) * 0.2, axis=1)
-    #
-    #     if final_contours.shape[0] == 0:
-    #         final_contours = cont
-    #     else:
-    #         final_contours = np.vstack((final_contours, cont))
-    # except IndexError:
-    #     c = 0
+        # fig = plt.figure()
+        # plt.xlim(0, 60)
+        # plt.ylim(0, 60)
+        # plt.imshow(img)
+        # fig.savefig('./cont/'+i)
+        # plt.close(fig)
 
-    cv2.imshow("Original", im_og)
-    cv2.imshow("Processed", img)
-    c = cv2.waitKey(0)
+        new_contours = np.squeeze(np.array(contours))
 
+        if len(new_contours) != 0:
+            new_contours = np.insert(new_contours, 2, ind + 1, axis=1)
+            if final_contours.shape[0] == 0:
+                final_contours = new_contours
+            else:
+                final_contours = np.vstack((final_contours, new_contours))
 
-# print final_contours.shape
-#
-# ch = ConvexHull(final_contours)
-#
+    else:
+        img = img_temp
+
+    # cv2.imshow("org", im_og)
+    # cv2.imshow("new", img)
+    # cv2.waitKey(0)
+
+ch = ConvexHull(final_contours)
+
 # fig = plt.figure()
-# for s in ch.simplices:
-#     plt.plot(final_contours[s, 0], final_contours[s, 1], final_contours[s, 2], 'r.')
-# plt.show()
+# ax = plt.axes(projection='3d')
 #
-# print ch.volume
+# for s in ch.simplices:
+#     # ax.contour3D(final_contours[s, 0], final_contours[s, 1], final_contours[s, 2], 50, cmap='binary')
+#     ax.scatter3D(final_contours[s, 0], final_contours[s, 1], final_contours[s, 2], c=final_contours[s, 2],
+#                  cmap='Greens');
+# plt.show()
+
+coords = open("coords.txt", "w+")
+
+for v in ch.vertices:
+    print final_contours[v]
+
+coords.close()
