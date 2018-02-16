@@ -2,16 +2,17 @@ import cv2
 import os
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.interpolate import griddata
 from scipy.spatial import ConvexHull
 from mpl_toolkits.mplot3d import Axes3D
-import matplotlib as mplib
+
+from createZStack import create_z_stack
 
 ix, iy, fx, fy = 0, 0, 0, 0
+membrane_z = 0
 drawing = False
 
 
-def handle_mouse(event, x, y, flags, params):
+def handle_opencv_mouse(event, x, y, flags, params):
     global ix, iy, fx, fy, drawing, img, im
 
     if event == cv2.EVENT_LBUTTONDOWN:
@@ -24,8 +25,13 @@ def handle_mouse(event, x, y, flags, params):
         cv2.rectangle(img, (ix, iy), (fx, fy), (0, 255, 0), 1)
 
 
+def handle_matplotlib_mouse(event):
+    global membrane_z
+    membrane_z = event.y
+
+
 cv2.namedWindow("Image")
-cv2.setMouseCallback("Image", handle_mouse)
+cv2.setMouseCallback("Image", handle_opencv_mouse)
 
 img = cv2.imread("/Users/upamanyughose/Documents/Rito/cellVolume/membrane_cell/c2/noLUT_z30c2.jpeg")
 img = cv2.resize(img, (480, 480))
@@ -39,13 +45,8 @@ while True:
 final_contours = []
 final_contours = np.array(final_contours)
 
-# try:
-#     os.mkdir("./contours" + str(ix) + "_" + str(iy) + "_" + str(fx) + "_" + str(fy) + "/")
-# except OSError:
-#     None
-
 for ind, i in enumerate(os.listdir("./membrane_cell/c2/")):
-    if i.startswith("."):
+    if i.startswith(".") or i.endswith(".npy"):
         continue
     img = cv2.imread(os.getcwd() + "/membrane_cell/c2/" + i)
     img = cv2.resize(img, (480, 480))
@@ -94,33 +95,21 @@ for ind, i in enumerate(os.listdir("./membrane_cell/c2/")):
         img = cv2.drawContours(np.zeros((100, 100, 3), dtype='uint8'), contours, 0, (255, 255, 255),
                                1)
 
-        # fig = plt.figure()
-        # plt.xlim(0, 60)
-        # plt.ylim(0, 60)
-        # plt.imshow(img)
-        # fig.savefig('./cont/'+i)
-        # plt.close(fig)
-
         new_contours = np.squeeze(np.array(contours))
 
         if len(new_contours) != 0:
             new_contours = np.insert(new_contours, 2, (ind + 1) * 0.2, axis=1)
             if final_contours.shape[0] == 0:
-                final_contours = new_contours * ((2048/480.) * 0.06905)
+                final_contours = new_contours * ((2048 / 480.) * 0.06905)
             else:
                 final_contours = np.vstack((final_contours, new_contours))
 
     else:
         img = img_temp
 
-    # cv2.imshow("org", im_og)
-    # cv2.imshow("new", img)
-    # cv2.waitKey(0)
+fig3d = plt.figure()
 
-
-fig3d_1 = plt.figure()
-
-ax1 = Axes3D(fig3d_1)
+ax1 = Axes3D(fig3d)
 
 ax1.set_xlabel('x')
 ax1.set_ylabel('y')
@@ -128,42 +117,33 @@ ax1.set_zlabel('z')
 
 ch = ConvexHull(final_contours)
 
+z_stack = create_z_stack('/Users/upamanyughose/Documents/Rito/cellVolume/membrane_cell/c2')
+cx = int(round(np.mean(ch.points[ch.vertices, 0]), 0))
+print cx
+lateral_cs = z_stack[:, cx, :, :]
+
 x = []
 y = []
 z = []
 
-print (ch.volume)
-# print (ch.volume * 0.0695 * 0.0695 * 0.2 * (2048/480.) * (2048/480.))
-
-for v in ch.simplices:
-    x.append(final_contours[v][0])
-    y.append(final_contours[v][1])
-    z.append(final_contours[v][2])
-    ax1.plot(final_contours[v, 0], final_contours[v, 1], final_contours[v, 2], color='blue', antialiased=True)
+# for v in ch.simplices:
+#     x.append(final_contours[v][0])
+#     y.append(final_contours[v][1])
+#     z.append(final_contours[v][2])
+#     ax1.plot(final_contours[v, 0], final_contours[v, 1], final_contours[v, 2], color='blue', antialiased=False)
 # plt.show()
 
+fig = plt.figure()
+fig.canvas.mpl_connect('button_press_event', handle_matplotlib_mouse)
 
-#
-# print x
-# print y
-# print z
-#
-# x = np.array(x)
-# y = np.array(y)
-# z = np.array(z)
-#
-# X, Y = np.meshgrid(x, y)
-# Z = griddata((x, y), z, (X, Y), method='linear')
-#
-# ax2.plot_surface(X, Y, Z)
-#
-# # my_plot = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap='jet', linewidth=0, antialiased=False)
-#
-# plt.show()
-#
-# # coords = open("coords.txt", "w+")
-# #
-# # for v in ch.vertices:
-# #     print final_contours[v]
-# #
-# # coords.close()
+plt.imshow(lateral_cs)
+plt.show()
+
+membrane_z = round(membrane_z, 0)
+
+for pts in final_contours:
+    if pts[2] < membrane_z:
+        final_contours = np.delete(final_contours, pts)
+
+ch = ConvexHull(final_contours)
+print ch.volume
