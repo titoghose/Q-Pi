@@ -2,8 +2,10 @@ import cv2
 import os
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.interpolate import griddata
 from scipy.spatial import ConvexHull
-from mpl_toolkits import mplot3d
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib as mplib
 
 ix, iy, fx, fy = 0, 0, 0, 0
 drawing = False
@@ -102,9 +104,9 @@ for ind, i in enumerate(os.listdir("./membrane_cell/c2/")):
         new_contours = np.squeeze(np.array(contours))
 
         if len(new_contours) != 0:
-            new_contours = np.insert(new_contours, 2, ind + 1, axis=1)
+            new_contours = np.insert(new_contours, 2, (ind + 1) * 0.2, axis=1)
             if final_contours.shape[0] == 0:
-                final_contours = new_contours
+                final_contours = new_contours * ((2048/480.) * 0.06905)
             else:
                 final_contours = np.vstack((final_contours, new_contours))
 
@@ -115,20 +117,53 @@ for ind, i in enumerate(os.listdir("./membrane_cell/c2/")):
     # cv2.imshow("new", img)
     # cv2.waitKey(0)
 
+
+fig3d_1 = plt.figure()
+
+ax1 = Axes3D(fig3d_1)
+
+ax1.set_xlabel('x')
+ax1.set_ylabel('y')
+ax1.set_zlabel('z')
+
 ch = ConvexHull(final_contours)
 
-# fig = plt.figure()
-# ax = plt.axes(projection='3d')
-#
-# for s in ch.simplices:
-#     # ax.contour3D(final_contours[s, 0], final_contours[s, 1], final_contours[s, 2], 50, cmap='binary')
-#     ax.scatter3D(final_contours[s, 0], final_contours[s, 1], final_contours[s, 2], c=final_contours[s, 2],
-#                  cmap='Greens');
+x = []
+y = []
+z = []
+
+print (ch.volume)
+# print (ch.volume * 0.0695 * 0.0695 * 0.2 * (2048/480.) * (2048/480.))
+
+for v in ch.simplices:
+    x.append(final_contours[v][0])
+    y.append(final_contours[v][1])
+    z.append(final_contours[v][2])
+    ax1.plot(final_contours[v, 0], final_contours[v, 1], final_contours[v, 2], color='blue', antialiased=True)
 # plt.show()
 
-coords = open("coords.txt", "w+")
 
-for v in ch.vertices:
-    print final_contours[v]
-
-coords.close()
+#
+# print x
+# print y
+# print z
+#
+# x = np.array(x)
+# y = np.array(y)
+# z = np.array(z)
+#
+# X, Y = np.meshgrid(x, y)
+# Z = griddata((x, y), z, (X, Y), method='linear')
+#
+# ax2.plot_surface(X, Y, Z)
+#
+# # my_plot = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap='jet', linewidth=0, antialiased=False)
+#
+# plt.show()
+#
+# # coords = open("coords.txt", "w+")
+# #
+# # for v in ch.vertices:
+# #     print final_contours[v]
+# #
+# # coords.close()
