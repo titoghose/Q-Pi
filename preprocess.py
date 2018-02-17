@@ -198,11 +198,10 @@ membrane_z = round(membrane_z, 0)
 print "Membrane Z level: ", membrane_z
 
 # removing all cell contour points above the z = membrane
-print final_contours.shape
+
 fc = np.array([])
 for ind, pts in enumerate(final_contours):
     if pts[2] >= membrane_z:
-        print pts[2]
         if fc.shape[0] == 0:
             fc = np.expand_dims(pts, axis=0)
         else:
@@ -212,6 +211,13 @@ final_contours = fc
 # applying Convex Hull to new set of points under membrane
 ch = ConvexHull(final_contours)
 print "Vol under membrane: ", ch.volume * x_factor * y_factor * z_factor
+
+fig3d = plt.figure()
+
+ax1 = Axes3D(fig3d)
+ax1.set_xlabel('x')
+ax1.set_ylabel('y')
+ax1.set_zlabel('z')
 
 # plotting new cell wiremesh below z = membrane
 for v in ch.simplices:
