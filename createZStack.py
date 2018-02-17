@@ -5,6 +5,7 @@ import numpy as np
 
 membrane_z = 0
 
+
 def handle_matplotlib_mouse(event):
     global membrane_z
     membrane_z = event.y
@@ -12,15 +13,18 @@ def handle_matplotlib_mouse(event):
     print membrane_z
 
 
+# function to create a z stack from a set of slices
 def create_z_stack(path):
     z_stack = np.array([])
 
+    # search for existing stack, else create
     try:
         print("Trying to load existing Z Stack.")
         z_stack = np.load(path + '/Z_STACK.npy')
     except IOError:
         print("Z Stack doesn't exist. Creating now.")
 
+        # loops through slices to create stack using np.vstack
         for ind, i in enumerate(os.listdir(path)):
             if i.endswith('.jpeg'):
                 img_name = path + '/' + i
