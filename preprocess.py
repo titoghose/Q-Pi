@@ -157,14 +157,19 @@ ax1.set_zlabel('z')
 ch = ConvexHull(final_contours)
 
 # Calculating volume of entire cell
-print "Entire Volume: ", round(ch.volume * ((((2048 / 480.) * 0.06905) ** 2) * 0.2), 3)
+x_factor = (2048 / 480.) * 0.06905
+y_factor = (2048 / 480.) * 0.06905
+z_factor = 0.2
+print "Entire Volume: ", ch.volume * x_factor * y_factor * z_factor
 
 # finding stack to display in order to get z = membrane
 z_stack = create_z_stack('/Users/upamanyughose/Documents/Rito/cellVolume/membrane_cell/c2')
 
 # finding centroid of reconstructed cell
 cx = int(round(np.mean(ch.points[ch.vertices, 0]), 0))
+cy = int(round(np.mean(ch.points[ch.vertices, 1]), 0))
 print "Centroid_x: ", cx
+print "Centroid_y: ", cy
 
 # creating the lateral slice of z stack
 lateral_cs = z_stack[:, cx, :, :]
@@ -193,13 +198,20 @@ membrane_z = round(membrane_z, 0)
 print "Membrane Z level: ", membrane_z
 
 # removing all cell contour points above the z = membrane
+print final_contours.shape
+fc = np.array([])
 for ind, pts in enumerate(final_contours):
-    if pts[2] < membrane_z:
-        final_contours = np.delete(final_contours, ind, axis=0)
+    if pts[2] >= membrane_z:
+        print pts[2]
+        if fc.shape[0] == 0:
+            fc = np.expand_dims(pts, axis=0)
+        else:
+            fc = np.vstack((fc, np.expand_dims(pts, axis=0)))
+final_contours = fc
 
 # applying Convex Hull to new set of points under membrane
 ch = ConvexHull(final_contours)
-print "Vol under membrane: ", round(ch.volume * ((((2048 / 480.) * 0.06905) ** 2) * 0.2), 3)
+print "Vol under membrane: ", ch.volume * x_factor * y_factor * z_factor
 
 # plotting new cell wiremesh below z = membrane
 for v in ch.simplices:

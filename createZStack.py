@@ -41,12 +41,12 @@ def create_z_stack(path):
     return z_stack
 
 
-z_stack = create_z_stack('/Users/upamanyughose/Documents/Rito/cellVolume/membrane_cell/c2')
-lateral_cs = z_stack[:, 100, :, :]
-
-fig = plt.figure()
-fig.canvas.mpl_connect('button_press_event', handle_matplotlib_mouse)
-plt.imshow(lateral_cs)
-plt.show()
-
-print membrane_z
+# z_stack = create_z_stack('/Users/upamanyughose/Documents/Rito/cellVolume/membrane_cell/c2')
+# lateral_cs = z_stack[:, 100, :, :]
+#
+# fig = plt.figure()
+# fig.canvas.mpl_connect('button_press_event', handle_matplotlib_mouse)
+# plt.imshow(lateral_cs)
+# plt.show()
+#
+# print membrane_z
