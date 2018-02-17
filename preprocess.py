@@ -27,7 +27,7 @@ def handle_opencv_mouse(event, x, y, flags, params):
 
 def handle_matplotlib_mouse(event):
     global membrane_z
-    membrane_z = event.y
+    membrane_z = event.ydata
 
 
 cv2.namedWindow("Image")
@@ -41,6 +41,12 @@ while True:
     k = cv2.waitKey(1)
     if k == ord('x'):
         break
+
+cv2.destroyAllWindows()
+cv2.waitKey(1)
+cv2.waitKey(1)
+cv2.waitKey(1)
+cv2.waitKey(1)
 
 final_contours = []
 final_contours = np.array(final_contours)
@@ -98,9 +104,9 @@ for ind, i in enumerate(os.listdir("./membrane_cell/c2/")):
         new_contours = np.squeeze(np.array(contours))
 
         if len(new_contours) != 0:
-            new_contours = np.insert(new_contours, 2, (ind + 1) * 0.2, axis=1)
+            new_contours = np.insert(new_contours, 2, (ind + 1), axis=1)
             if final_contours.shape[0] == 0:
-                final_contours = new_contours * ((2048 / 480.) * 0.06905)
+                final_contours = new_contours
             else:
                 final_contours = np.vstack((final_contours, new_contours))
 
@@ -119,19 +125,19 @@ ch = ConvexHull(final_contours)
 
 z_stack = create_z_stack('/Users/upamanyughose/Documents/Rito/cellVolume/membrane_cell/c2')
 cx = int(round(np.mean(ch.points[ch.vertices, 0]), 0))
-print cx
+print "Centroid_x: ", cx
 lateral_cs = z_stack[:, cx, :, :]
 
 x = []
 y = []
 z = []
 
-# for v in ch.simplices:
-#     x.append(final_contours[v][0])
-#     y.append(final_contours[v][1])
-#     z.append(final_contours[v][2])
-#     ax1.plot(final_contours[v, 0], final_contours[v, 1], final_contours[v, 2], color='blue', antialiased=False)
-# plt.show()
+for v in ch.simplices:
+    x.append(final_contours[v][0])
+    y.append(final_contours[v][1])
+    z.append(final_contours[v][2])
+    ax1.plot(final_contours[v, 0], final_contours[v, 1], final_contours[v, 2], color='blue', antialiased=True)
+plt.show()
 
 fig = plt.figure()
 fig.canvas.mpl_connect('button_press_event', handle_matplotlib_mouse)
@@ -141,9 +147,18 @@ plt.show()
 
 membrane_z = round(membrane_z, 0)
 
-for pts in final_contours:
+print "Membrane Z level: ", membrane_z
+
+for ind, pts in enumerate(final_contours):
     if pts[2] < membrane_z:
-        final_contours = np.delete(final_contours, pts)
+        final_contours = np.delete(final_contours, ind, axis=0)
 
 ch = ConvexHull(final_contours)
-print ch.volume
+print round(ch.volume * ((((2048 / 480.) * 0.06905) ** 2) * 0.2), 3)
+
+for v in ch.simplices:
+    x.append(final_contours[v][0])
+    y.append(final_contours[v][1])
+    z.append(final_contours[v][2])
+    ax1.plot(final_contours[v, 0], final_contours[v, 1], final_contours[v, 2], color='blue', antialiased=True)
+plt.show()
