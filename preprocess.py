@@ -63,6 +63,11 @@ cv2.waitKey(1)
 final_contours = []
 final_contours = np.array(final_contours)
 
+try:
+    os.mkdir("./postProcessing")
+except OSError:
+    None
+
 # looping through the z slices to extract cell countours in each slice
 for ind, i in enumerate(os.listdir("./membrane_cell/c2/")):
     if i.startswith(".") or i.endswith(".npy"):
@@ -70,12 +75,16 @@ for ind, i in enumerate(os.listdir("./membrane_cell/c2/")):
     img = cv2.imread(os.getcwd() + "/membrane_cell/c2/" + i)
     img = cv2.resize(img, (480, 480))
     img = img[iy:fy, ix:fx, 0]
+    if ("z30" in i) or ("Z30" in i):
+        cv2.imwrite("postProcessing/afterCrop.jpg", img)
 
     im_og = img.copy()
 
     # applying bilateral filter to preserve edges while removing noise; eg. Gaussian Blur is not good at edge
     # preservation
     filtered = cv2.bilateralFilter(img, 5, 75, 75)
+    if ("z30" in i) or ("Z30" in i):
+        cv2.imwrite("postProcessing/afterBilateralFilter.jpg", filtered)
 
     # finding threshold value as a linear function of slice number due to varying intensity of cell brightness in
     # each slice
@@ -83,15 +92,21 @@ for ind, i in enumerate(os.listdir("./membrane_cell/c2/")):
 
     # applying binary threshold based on thresh_val to get rid of background
     ret, img = cv2.threshold(filtered, thresh_val, 255, cv2.THRESH_BINARY)
+    if ("z30" in i) or ("Z30" in i):
+        cv2.imwrite("postProcessing/afterBinaryThreshold.jpg", img)
 
     # applying open operation i.e erosion followed by dilation to get rid of small noisy outliers in background
     kernel = np.ones((3, 3))
     img = cv2.morphologyEx(img, op=cv2.MORPH_OPEN, kernel=kernel)
+    if ("z30" in i) or ("Z30" in i):
+        cv2.imwrite("postProcessing/afterOpen.jpg", img)
 
     # applying close operation i.e dilation followed by erosion to regenerate portions of cell that might have been
     # lost due to opening operarion
     kernel = np.ones((3, 3))
     img = cv2.morphologyEx(img, op=cv2.MORPH_CLOSE, kernel=kernel)
+    if ("z30" in i) or ("Z30" in i):
+        cv2.imwrite("postProcessing/afterClose.jpg", img)
 
     im = img.copy()
 
@@ -118,12 +133,19 @@ for ind, i in enumerate(os.listdir("./membrane_cell/c2/")):
     # removing extra dimensions from countour array
     if len(contours) != 0 and maxInd != -1:
         new_contours = np.squeeze(np.array(contours[maxInd]))
+        if ("z30" in i) or ("Z30" in i):
+            img_cont = cv2.drawContours(img_temp, [new_contours], -1, (255, 255, 255), 1)
+            cv2.imwrite("postProcessing/initialContours.jpg", img_cont)
 
+    img_temp = np.zeros(img.shape, dtype='uint8')
     # fitting the closest ellipse (approximation) to the contours in order to take care of cell boundaries that might
     # not have been picked up
     if new_contours.shape[0] != 0:
         ellipse = cv2.fitEllipse(new_contours)
-        img = cv2.ellipse(img_temp, ellipse, (255, 255, 255), -1)
+        img = cv2.ellipse(img_temp, ellipse, (255, 255, 255), 1)
+
+        if ("z30" in i) or ("Z30" in i):
+            cv2.imwrite("postProcessing/minEllipseContours.jpg", img)
 
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         im = img.copy()
