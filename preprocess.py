@@ -65,6 +65,7 @@ final_contours = np.array(final_contours)
 
 try:
     os.mkdir("./postProcessing")
+    os.mkdir("./contourLines")
 except OSError:
     None
 
@@ -133,26 +134,28 @@ for ind, i in enumerate(os.listdir("./membrane_cell/c2/")):
     # removing extra dimensions from countour array
     if len(contours) != 0 and maxInd != -1:
         new_contours = np.squeeze(np.array(contours[maxInd]))
+        img_cont = cv2.drawContours(img_temp, [new_contours], -1, (255, 255, 255), 1)
+        cv2.imwrite("contourLines/cont_" + i, img_cont)
         if ("z30" in i) or ("Z30" in i):
-            img_cont = cv2.drawContours(img_temp, [new_contours], -1, (255, 255, 255), 1)
             cv2.imwrite("postProcessing/initialContours.jpg", img_cont)
 
-    img_temp = np.zeros(img.shape, dtype='uint8')
     # fitting the closest ellipse (approximation) to the contours in order to take care of cell boundaries that might
     # not have been picked up
     if new_contours.shape[0] != 0:
         ellipse = cv2.fitEllipse(new_contours)
-        img = cv2.ellipse(img_temp, ellipse, (255, 255, 255), 1)
-
-        if ("z30" in i) or ("Z30" in i):
-            cv2.imwrite("postProcessing/minEllipseContours.jpg", img)
+        img_temp = np.zeros(img.shape, dtype='uint8')
+        img = cv2.ellipse(img_temp, ellipse, (255, 255, 255), -1)
 
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         im = img.copy()
 
         _, contours, hierarchy = cv2.findContours(im, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_SIMPLE)
-        img = cv2.drawContours(np.zeros((100, 100, 3), dtype='uint8'), contours, 0, (255, 255, 255),
-                               1)
+        img_temp = np.zeros(img.shape, dtype='uint8')
+        img = cv2.drawContours(img_temp, contours, 0, (255, 255, 255), 1)
+
+        cv2.imwrite("contourLines/cont_ellipse_" + i, img)
+        if ("z30" in i) or ("Z30" in i):
+            cv2.imwrite("postProcessing/minEllipseContours.jpg", img)
 
         new_contours = np.squeeze(np.array(contours))
 
@@ -162,7 +165,6 @@ for ind, i in enumerate(os.listdir("./membrane_cell/c2/")):
                 final_contours = new_contours
             else:
                 final_contours = np.vstack((final_contours, new_contours))
-
     else:
         img = img_temp
 
