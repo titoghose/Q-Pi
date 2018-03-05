@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,13 +21,13 @@ def create_z_stack(path):
     # search for existing stack, else create
     try:
         print("Trying to load existing Z Stack.")
-        z_stack = np.load(path + '/Z_STACK.npy')
+        z_stack = np.load(path + '/0Z_STACK.npy')
     except IOError:
         print("Z Stack doesn't exist. Creating now.")
 
         # loops through slices to create stack using np.vstack
-        for ind, i in enumerate(os.listdir(path)):
-            if i.endswith('.jpeg'):
+        for ind, i in enumerate(sorted(os.listdir(path), key=lambda z: (int(re.sub('\D', '', z)), z))):
+            if i.endswith('.jpeg') or i.endswith('.png'):
                 img_name = path + '/' + i
                 img = plt.imread(img_name)
                 if z_stack.shape[0] == 0:
@@ -34,9 +35,8 @@ def create_z_stack(path):
                 else:
                     z_stack = np.vstack((z_stack, np.expand_dims(img, axis=0)))
             print "Progress: [%d%%]\r" % (((ind + 1) / 60.) * 100)
-            sys.stdout.flush()
 
-        np.save(path + '/Z_STACK.npy', z_stack, allow_pickle=True)
+        np.save(path + '/0Z_STACK.npy', z_stack, allow_pickle=True)
 
     return z_stack
 
