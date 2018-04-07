@@ -11,48 +11,37 @@ from mpl_toolkits.mplot3d import Axes3D
 
 
 def extract_from_ND2(file_name, c):
-    print file_name
-    frames = ND2_Reader(file_name)
-    f = ''
-    if c == 1:
-        f = file_name.split('.')[0] + '_c1/'
-    else:
-        f = file_name.split('.')[0] + '_c2/'
+	print file_name
+	frames = ND2_Reader(file_name)
+	f = ''
+	if c == 1:
+	    f = mDir + '/c1/'
+	else:
+	    f = mDir + '/c2/'
 
-    frames.default_coords['c'] = c - 1
+	frames.default_coords['c'] = c - 1
 
-    num_slices = frames[0].shape[0]
+	num_slices = frames[0].shape[0]
 
-    try:
-        os.mkdir(f)
-        for j, fr in enumerate(frames[0]):
-            fn = file_name.split('.')
-            plt.imsave(f + str(j) + '_' + fn[0] + '.png', fr, cmap='gray')
-            print("Progress: [%f]" % ((100.0 * j) / num_slices))
-
-    except OSError:
-        None
+	try:
+	    os.mkdir(f)
+	    for j, fr in enumerate(frames[0]):
+			fn = file_name.split('.')
+			plt.imsave(f + str(j) + '_' + fn[0] + '.png', fr, cmap='gray')
+			print("Progress: [%f]" % ((100.0 * j)/num_slices))
+	
+	except OSError:
+	    None
 
 
 file_name = sys.argv[1]
+mDir=file_name.split('.')[0] + ' Data'
+try:
+	os.mkdir(mDir+'/')
+except OSError:
+	None
 extract_from_ND2(file_name, 1)
 extract_from_ND2(file_name, 2)
-
-img_dim = 1024
-
-# variable to store coordinates of bounding box for selected cell
-ix, iy, fx, fy = 0, 0, 0, 0
-
-# setting up image:microscope scale variables
-x_factor = (img_dim / 480.) * 0.06905
-y_factor = (img_dim / 480.) * 0.06905
-z_factor = 0.2
-
-# variable to store z = membrane
-membrane_z = 0
-
-# flag enabling/disabling drawing of bounding box for selected cell
-drawing = False
 
 
 # function handling drawing of bounding box for selected cell
@@ -90,20 +79,13 @@ def plot_data(contours, fname):
     centroid_y = np.mean(contours[ch.vertices, 1], axis=0)
     centroid_z = np.mean(contours[ch.vertices, 2], axis=0)
 
-    # print("Centroid: (%3f, %3f, %3f)" % (ix + centroid_x, iy + centroid_y, centroid_z))
-
-    # plt.tight_layout()
-
     # plotting new cell wiremesh below z = membrane
     for v in ch.simplices:
         x = [a for a in contours[v][0]]
         y = [a for a in contours[v][1]]
         z = [a for a in contours[v][2]]
+        ax.plot(contours[v, 0], contours[v, 1], contours[v, 2], color='blue', antialiased=True)
 
-        # tupleList = zip(x, y, z)
-        # poly3d = [[tupleList[vertices[ix][iy]] for iy in range(len(vertices[0]))] for ix in range(len(vertices))]
-        # ax.add_collection3d(Poly3DCollection([zip(x, y, z)]))
-        ax.plot(contours[v, 0], contours[v, 1], contours[v, 2], color='blue', antialiased=True, fillstyle='full')
     plt.savefig(fname)
     plt.show()
 
@@ -112,6 +94,8 @@ def plot_data(contours, fname):
 
 # function to create a z stack from a set of slices
 def create_z_stack(path):
+    global num_stacks
+
     Z_stack = np.array([])
 
     # search for existing stack, else create
@@ -123,6 +107,8 @@ def create_z_stack(path):
 
         slices = sorted(os.listdir(path), key=lambda z: (int(re.sub('\D', '', z)), z))
         num_slices = len(slices)
+        num_stacks = num_slices
+
         # loops through slices to create stack using np.vstack
         for ind, i in enumerate(slices):
             if i.endswith('.jpeg') or i.endswith('.png'):
@@ -144,23 +130,36 @@ def create_z_stack(path):
 cv2.namedWindow('Image')
 cv2.setMouseCallback('Image', handle_opencv_mouse)
 
-# folder_name = 'Day1/'
-# file_name = folder_name + '52_ctrl002.nd2.png'
+img_dim = 0
+num_stacks = 0
 
-# folder_name = 'membrane_cell/c2/'
-# file_name = folder_name + 'noLUT_z30c2.jpeg'
+# variable to store coordinates of bounding box for selected cell
+ix, iy, fx, fy = 0, 0, 0, 0
 
-# Loading the image corresponding to z = 30 (middle value) to enable bounding box drawing for cell selection + resizing
-mid_file_name = file_name.split('.')[0] + '_c2/'
-slices = sorted(os.listdir(file_name.split('.')[0] + '_c2/'), key=lambda z: (int(re.sub('\D', '', z)), z))
+# setting up image:microscope scale variables
+x_factor = (img_dim / 480.) * 0.21
+y_factor = (img_dim / 480.) * 0.21
+z_factor = 0.2
+
+# variable to store z = membrane
+membrane_z = 0
+
+# flag enabling/disabling drawing of bounding box for selected cell
+drawing = False
+
+# Loading the image corresponding middle value of upper and lower z inputs to enable bounding box drawing for cell selection + resizing
+mid_file_name = mDir + '/c2/'
+slices = sorted(os.listdir(mDir + '/c2/'), key=lambda z: (int(re.sub('\D', '', z)), z))
+TargetInd=int((int(sys.argv[3])-int(sys.argv[2]))*0.5)+int(sys.argv[2])
 for ind, i in enumerate(slices):
-    if ind == int((len(slices) * (0.5))):
-        mid_file_name += i
-        break
+	if ind == TargetInd:
+		mid_file_name += i
+		break
 
 print mid_file_name
 
 img = cv2.imread(mid_file_name)
+img_dim = img.shape[1]
 img = cv2.resize(img, (480, 480))
 
 # Loop handling drawing of bounding boxes
@@ -182,13 +181,18 @@ final_contours = []
 final_contours = np.array(final_contours)
 
 # create directories to save intermediate output
-postProcessing_dir = file_name.split('.')[0] + '_postProcessing_' + str(ix) + '_' + str(iy)
-contourLines_dir = file_name.split('.')[0] + '_contourLines_' + str(ix) + '_' + str(iy)
+cell_dir = mDir + '/cell_' + str(ix) + '_' + str(iy) + '/'
+postProcessing_dir = cell_dir + '/postprocessing'
+contourLines_dir = cell_dir + '/contourLines'
 try:
+    os.mkdir(cell_dir)
     os.mkdir(postProcessing_dir)
     os.mkdir(contourLines_dir)
 except OSError:
-    None
+    shutil.rmtree(cell_dir)
+    os.mkdir(cell_dir)
+    os.mkdir(postProcessing_dir)
+    os.mkdir(contourLines_dir)
 
 roi_centre = [(ix + fx) / 2, (iy + fy) / 2]
 
@@ -196,13 +200,12 @@ roi_centre = [(ix + fx) / 2, (iy + fy) / 2]
 # print("Centre of bounding box: (%3f, %3f)" % (roi_centre[0], roi_centre[1]))
 
 # looping through the z slices to extract cell countours in each slice
-for ind, i in enumerate(
-        sorted(os.listdir(file_name.split('.')[0] + '_c2/'), key=lambda z: (int(re.sub('\D', '', z)), z))):
+for ind, i in enumerate(sorted(os.listdir(mDir + '/c2/'), key=lambda z: (int(re.sub('\D', '', z)), z))):
     if i.startswith('.') or i.endswith('.npy') or ind < int(sys.argv[2]) or ind > int(sys.argv[3]):
         continue
 
     # print ind, i
-    img_nocrop = cv2.imread(file_name.split('.')[0] + '_c2/' + i)
+    img_nocrop = cv2.imread(mDir + '/c2/' + i)
     img_nocrop = cv2.resize(img_nocrop, (480, 480))
 
     # applying bilateral filter to preserve edges while removing noise; eg. Gaussian Blur is not good at edge
@@ -225,14 +228,6 @@ for ind, i in enumerate(
 
     if ('z30' in i) or ('Z30' in i):
         cv2.imwrite(postProcessing_dir + '/afterBinaryThreshold.jpg', img)
-
-    # l_ix, l_iy, l_fx, l_fy = extend_roi(img)
-
-    # img = img[l_iy:l_fy, l_ix:l_fx, 0]
-    # cv2.imshow("win", img)
-    # cv2.waitKey(0)
-    # if ('z30' in i) or ('Z30' in i):
-    #     cv2.imwrite(postProcessing_dir + '/afterCrop.jpg', img)
 
     im_og = img.copy()
 
@@ -320,31 +315,32 @@ for ind, i in enumerate(
 
 # finding stack to display in order to get z = membrane
 try:
-    z_stack = create_z_stack(file_name.split('.')[0] + "_c1/")
+    z_stack = create_z_stack(mDir + "/c1/")
+    num_stacks = z_stack.shape[0]
 except OSError:
     None
 
 # fitting convex hull on points forming final_contours
-conv_hull_full = plot_data(final_contours,
-                           file_name.split('.')[0] + '_reconstructed_' + str(ix) + '_' + str(iy) + '.png')
+conv_hull_full = plot_data(final_contours, cell_dir + '/reconstructed_'+str(ix)+'_'+str(iy)+'.png')
 
 # finding centroid (in entire img_dim x img_dim image) of reconstructed cell
 cx = int((ix + round(np.mean(conv_hull_full.points[conv_hull_full.vertices, 0]), 0)) * (img_dim / 480.))
 cy = int((iy + round(np.mean(conv_hull_full.points[conv_hull_full.vertices, 1]), 0)) * (img_dim / 480.))
 
 # creating the lateral slice of z stack
-print 'Centre of cell in z stack: ', (img_dim - cy)
-lateral_cs = np.array(z_stack[:, int(cx * (480. / img_dim)), :])
+print 'Centre of cell in z stack: ', cy
+lateral_cs = np.array(z_stack[:, :, int(cx * (480. / img_dim))])
+lateral_cs = cv2.resize(lateral_cs, (img_dim, num_stacks))
 # lateral_cs = np.repeat(lateral_cs, 2, 0)
 
 # figure to show z stack and point out z = membrane
-#     plt.xlabel('y')
-# plt.ylabel('z')
 fig = plt.figure()
+#fig.xlabel('y')
+#fig.ylabel('z')
 fig.canvas.mpl_connect('button_press_event', handle_matplotlib_mouse)
 
-plt.imshow(lateral_cs, cmap='gray')
-plt.axvline((img_dim - cy) * (480. / img_dim), c='red')
+plt.imshow(lateral_cs, cmap = 'gray')
+plt.axvline(cy, c='red')
 plt.show()
 
 # membrane_z = int(round(membrane_z / 2, 0))
@@ -361,11 +357,18 @@ for ind, pts in enumerate(final_contours):
             fc = np.vstack((fc, np.expand_dims(pts, axis=0)))
 
 # applying Convex Hull to new set of points under membrane
-conv_hull_under_mem = plot_data(fc, file_name.split('.')[0] + '_underMem_' + str(ix) + '_' + str(iy) + '.png')
+try: 
+        conv_hull_under_mem = plot_data(fc, cell_dir+'/underMem_'+str(ix)+'_'+str(iy)+'.png')
 
 # Calculating volume (quantitative) data
-tot_vol = conv_hull_full.volume * x_factor * y_factor * z_factor
-vol_under_mem = conv_hull_under_mem.volume * x_factor * y_factor * z_factor
+        tot_vol = conv_hull_full.volume * x_factor * y_factor * z_factor
+        vol_under_mem = conv_hull_under_mem.volume * x_factor * y_factor * z_factor
+
+# Exception in case the volume invasion is 0
+except Exception:
+        tot_vol = conv_hull_full.volume * x_factor * y_factor * z_factor
+        vol_under_mem = 0
+        
 
 print 'Total Volume: ', tot_vol
 print 'Volume Under Membrane: ', vol_under_mem

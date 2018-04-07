@@ -2,22 +2,25 @@ import re
 import cv2
 import os
 import sys
+import shutil
+import numpy as np
+from mayavi import mlab
 from pims import ND2_Reader
 import matplotlib.pyplot as plt
-import numpy as np
-import shutil
 from scipy.spatial import ConvexHull
-from mpl_toolkits.mplot3d import Axes3D
 
 
 def extract_from_ND2(file_name, c):
+    global calib
     print file_name
     frames = ND2_Reader(file_name)
+    calib = float(frames.metadata['calibration_um'])
+
     f = ''
     if c == 1:
-        f = file_name.split('.')[0] + '_c1/'
+        f = mDir + '/c1/'
     else:
-        f = file_name.split('.')[0] + '_c2/'
+        f = mDir + '/c2/'
 
     frames.default_coords['c'] = c - 1
 
@@ -35,24 +38,13 @@ def extract_from_ND2(file_name, c):
 
 
 file_name = sys.argv[1]
+mDir = file_name.split('.')[0] + '_Data'
+try:
+    os.mkdir(mDir + '/')
+except OSError:
+    None
 extract_from_ND2(file_name, 1)
 extract_from_ND2(file_name, 2)
-
-img_dim = 1024
-
-# variable to store coordinates of bounding box for selected cell
-ix, iy, fx, fy = 0, 0, 0, 0
-
-# setting up image:microscope scale variables
-x_factor = (img_dim / 480.) * 0.06905
-y_factor = (img_dim / 480.) * 0.06905
-z_factor = 0.2
-
-# variable to store z = membrane
-membrane_z = 0
-
-# flag enabling/disabling drawing of bounding box for selected cell
-drawing = False
 
 
 # function handling drawing of bounding box for selected cell
@@ -76,42 +68,101 @@ def handle_matplotlib_mouse(event):
 
 
 # function to plot meshgrid
-def plot_data(contours, fname):
+def plot_data(contours, cnt2, fname, mem_z, draw_flag):
     global ix, iy
 
     ch = ConvexHull(contours)
-    fig3d = plt.figure()
-    ax = Axes3D(fig3d)
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
 
-    centroid_x = np.mean(contours[ch.vertices, 0], axis=0)
-    centroid_y = np.mean(contours[ch.vertices, 1], axis=0)
-    centroid_z = np.mean(contours[ch.vertices, 2], axis=0)
+    max_x = np.max(contours[ch.vertices, 0], axis=0)
+    max_y = np.max(contours[ch.vertices, 1], axis=0)
+    max_z = np.max(contours[ch.vertices, 2], axis=0)
 
-    # print("Centroid: (%3f, %3f, %3f)" % (ix + centroid_x, iy + centroid_y, centroid_z))
+    max_xy = max(max_x, max_y)
+    scale_factor = max_xy / float(sys.argv[3])
 
-    # plt.tight_layout()
+    print max_x, max_y, max_z
 
-    # plotting new cell wiremesh below z = membrane
-    for v in ch.simplices:
-        x = [a for a in contours[v][0]]
-        y = [a for a in contours[v][1]]
-        z = [a for a in contours[v][2]]
+    if draw_flag is False:
+        return ch
 
-        # tupleList = zip(x, y, z)
-        # poly3d = [[tupleList[vertices[ix][iy]] for iy in range(len(vertices[0]))] for ix in range(len(vertices))]
-        # ax.add_collection3d(Poly3DCollection([zip(x, y, z)]))
-        ax.plot(contours[v, 0], contours[v, 1], contours[v, 2], color='blue', antialiased=True, fillstyle='full')
-    plt.savefig(fname)
-    plt.show()
+    try:
+        draw = sys.argv[4]
+
+        fig = mlab.figure(1, bgcolor=(1, 1, 1), fgcolor=(0.5, 0.5, 0.5))
+        s1, s2, s3 = None, None, None
+        # plotting new cell wiremesh below z = membrane
+        for v in ch.simplices:
+
+            s2 = mlab.plot3d(contours[v, 0], contours[v, 1], (contours[v, 2] * scale_factor), color=(0, 0, 1),
+                             tube_radius=0.3)
+            s1 = mlab.points3d(contours[v, 0], contours[v, 1], (contours[v, 2] * scale_factor), color=(0, 0, 0),
+                               scale_factor=0.5)
+            # color_plot = (0, 0, 1)
+            # s3 = mlab.triangular_mesh(contours[v, 0], contours[v, 1], (contours[v, 2] * scale_factor), [(0, 1, 2)],
+            #                           mode='point', color=color_plot, opacity=0.6)
+        print "plot above"
+        try:
+            if mem_z != -1:
+                max_lim = max(int(max_x), int(max_y))
+                # max_lim = 60
+                xs = range(-int(max_lim / 6.), int(max_lim + max_lim / 6. + 1))
+                ys = range(-int(max_lim / 6.), int(max_lim + max_lim / 6. + 1))
+                X, Y = np.meshgrid(xs, ys)
+                Z1 = np.ones((len(ys), len(ys))) * (mem_z * scale_factor)
+                mlab.mesh(X, Y, Z1, color=(0.6, 0.6, 0.6), opacity=1.0)
+            print "plot mesentery"
+        except Exception, E:
+            print str(E)
+
+        if cnt2 is not None:
+            ch2 = ConvexHull(cnt2)
+            for v in ch2.simplices:
+                s1 = mlab.points3d(cnt2[v, 0], cnt2[v, 1], (cnt2[v, 2] * scale_factor), color=(0, 0, 0),
+                                   scale_factor=0.5)
+                s2 = mlab.plot3d(cnt2[v, 0], cnt2[v, 1], (cnt2[v, 2] * scale_factor), color=(0, 0, 0), tube_radius=0.05)
+                s3 = mlab.triangular_mesh(cnt2[v, 0], cnt2[v, 1], (cnt2[v, 2] * scale_factor), [(0, 1, 2)],
+                                          mode='point', color=(1, 0, 0), opacity=0.6)
+        print "plot below"
+
+        scale_len = (2. * 480.) / (img_dim * 0.20716)
+
+        scale_bar_x = np.array([int(max_lim + max_lim / 6. + 1), int(max_lim + max_lim / 6. + 1)])
+        scale_bar_y = np.array([-int(max_lim / 6.), -int(max_lim / 6.) + scale_len])
+        scale_bar_z = np.array([0, 0])
+
+        print "Scale Len: ", scale_len
+
+        mlab.plot3d(scale_bar_x, scale_bar_y, scale_bar_z, color=(0, 0, 0), tube_radius=0.1)
+        # mlab.text3d(0, 0, 3, str(0))
+        # mlab.text3d(scale_len, 0, 3, str(2))
+        # mlab.text3d(int(scale_len/2.)-2, 0, 3, "microns")
+
+        # axes_x = np.array([-int(max_lim / 3.), -int(max_lim / 3.), -int(max_lim / 3.), -int(max_lim / 3.),
+        #                    -int(max_lim / 3.), int(max_lim + max_lim / 3. + 1)])
+        # axes_y = np.array([-int(max_lim / 3.), -int(max_lim / 3.), -int(max_lim / 3.), int(max_lim + max_lim / 3. + 1),
+        #                    -int(max_lim / 3.), -int(max_lim / 3.)])
+        # axes_z = np.array([0, num_stacks * scale_factor, 0, 0, 0, 0])
+
+        # mlab.plot3d(axes_x, axes_y, axes_z, color=(0.5, 0.5, 0.5), tube_radius=0.1)
+        # mlab.text3d(-int(max_lim / 3.)-3, -int(max_lim / 3.)-3, 0, "O")
+        # mlab.text3d(int(max_lim + max_lim / 3. + 1), -int(max_lim / 3.), 0, str(int(max_lim + max_lim / 3. + 1)))
+        # mlab.text3d(-int(max_lim / 3.), int(max_lim + max_lim / 3. + 1), 0, str(int(max_lim + max_lim / 3. + 1)))
+        # mlab.text3d(-int(max_lim / 3.)-3, -int(max_lim / 3.)-3, num_stacks * scale_factor, str(num_stacks))
+        # if mem_z != -1:
+        #     mlab.text3d(-int(max_lim / 3.)-3, -int(max_lim / 3.)-3, mem_z * scale_factor, str(mem_z))
+
+        mlab.savefig(fname.split('.')[0] + '.eps')
+        mlab.show()
+    except IndexError:
+        None
 
     return ch
 
 
 # function to create a z stack from a set of slices
 def create_z_stack(path):
+    global num_stacks
+
     Z_stack = np.array([])
 
     # search for existing stack, else create
@@ -123,6 +174,7 @@ def create_z_stack(path):
 
         slices = sorted(os.listdir(path), key=lambda z: (int(re.sub('\D', '', z)), z))
         num_slices = len(slices)
+        num_stacks = num_slices
         # loops through slices to create stack using np.vstack
         for ind, i in enumerate(slices):
             if i.endswith('.jpeg') or i.endswith('.png'):
@@ -144,65 +196,93 @@ def create_z_stack(path):
 cv2.namedWindow('Image')
 cv2.setMouseCallback('Image', handle_opencv_mouse)
 
-# folder_name = 'Day1/'
-# file_name = folder_name + '52_ctrl002.nd2.png'
-
-# folder_name = 'membrane_cell/c2/'
-# file_name = folder_name + 'noLUT_z30c2.jpeg'
-
-# Loading the image corresponding to z = 30 (middle value) to enable bounding box drawing for cell selection + resizing
-mid_file_name = file_name.split('.')[0] + '_c2/'
-slices = sorted(os.listdir(file_name.split('.')[0] + '_c2/'), key=lambda z: (int(re.sub('\D', '', z)), z))
+# Loading the image corresponding middle value of upper and lower z inputs to enable bounding box drawing for cell
+# selection + resizing
+mid_file_name = mDir + '/c2/'
+slices = sorted(os.listdir(mDir + '/c2/'), key=lambda z: (int(re.sub('\D', '', z)), z))
+TargetInd = int((int(sys.argv[3]) - int(sys.argv[2])) * 0.5) + int(sys.argv[2])
+print "Target Index: ", TargetInd
 for ind, i in enumerate(slices):
-    if ind == int((len(slices) * (0.5))):
+    if ind == TargetInd:
         mid_file_name += i
         break
 
 print mid_file_name
 
+calib = 0.06905
+img_dim = 0
+num_stacks = 0
+
+# variable to store coordinates of bounding box for selected cell
+ix, iy, fx, fy = 0, 0, 0, 0
+
 img = cv2.imread(mid_file_name)
+img_dim = img.shape[1]
 img = cv2.resize(img, (480, 480))
 
+# plt.imshow(img)
+# plt.show()
+
+# setting up image:microscope scale variables
+x_factor = (img_dim / 480.) * calib
+y_factor = (img_dim / 480.) * calib
+z_factor = 0.2
+
+# variable to store z = membrane
+membrane_z = 0
+
+# flag enabling/disabling drawing of bounding box for selected cell
+drawing = False
+
 # Loop handling drawing of bounding boxes
-while True:
-    cv2.imshow('Image', img)
-    k = cv2.waitKey(1)
-    if k == ord('x'):
-        break
+# while True:
+#     cv2.imshow('Image', img)
+#     k = cv2.waitKey(1)
+#     if k == ord('x'):
+#         break
+
+ix = 216
+iy = 223
+fx = 275
+fy = 271
 
 # destroying initial OpenCV display window and closing it
-cv2.destroyAllWindows()
-cv2.waitKey(1)
-cv2.waitKey(1)
-cv2.waitKey(1)
-cv2.waitKey(1)
+# cv2.destroyAllWindows()
+# cv2.waitKey(1)
+# cv2.waitKey(1)
+# cv2.waitKey(1)
+# cv2.waitKey(1)
 
 # creating numpy array to store final contours of selected cell
 final_contours = []
 final_contours = np.array(final_contours)
 
 # create directories to save intermediate output
-postProcessing_dir = file_name.split('.')[0] + '_postProcessing_' + str(ix) + '_' + str(iy)
-contourLines_dir = file_name.split('.')[0] + '_contourLines_' + str(ix) + '_' + str(iy)
+cell_dir = mDir + '/cell_' + str(ix) + '_' + str(iy) + '/'
+postProcessing_dir = cell_dir + '/postprocessing'
+contourLines_dir = cell_dir + '/contourLines'
 try:
+    os.mkdir(cell_dir)
     os.mkdir(postProcessing_dir)
     os.mkdir(contourLines_dir)
 except OSError:
-    None
+    shutil.rmtree(cell_dir)
+    os.mkdir(cell_dir)
+    os.mkdir(postProcessing_dir)
+    os.mkdir(contourLines_dir)
 
-roi_centre = [(ix + fx) / 2, (iy + fy) / 2]
+roi_centre = [(ix + fx) / 2, (iy + fy) / 2] * int(img_dim / 480.)
 
-# print("Rectangle coordinates: (%3f, %3f) (%3f, %3f)" % (ix, iy, fx, fy))
-# print("Centre of bounding box: (%3f, %3f)" % (roi_centre[0], roi_centre[1]))
+print("Rectangle coordinates: (%3f, %3f) (%3f, %3f)" % (ix, iy, fx, fy))
+print("Centre of bounding box: (%3f, %3f)" % (roi_centre[0], roi_centre[1]))
 
 # looping through the z slices to extract cell countours in each slice
-for ind, i in enumerate(
-        sorted(os.listdir(file_name.split('.')[0] + '_c2/'), key=lambda z: (int(re.sub('\D', '', z)), z))):
+for ind, i in enumerate(sorted(os.listdir(mDir + '/c2/'), key=lambda z: (int(re.sub('\D', '', z)), z))):
     if i.startswith('.') or i.endswith('.npy') or ind < int(sys.argv[2]) or ind > int(sys.argv[3]):
         continue
 
     # print ind, i
-    img_nocrop = cv2.imread(file_name.split('.')[0] + '_c2/' + i)
+    img_nocrop = cv2.imread(mDir + '/c2/' + i)
     img_nocrop = cv2.resize(img_nocrop, (480, 480))
 
     # applying bilateral filter to preserve edges while removing noise; eg. Gaussian Blur is not good at edge
@@ -225,14 +305,6 @@ for ind, i in enumerate(
 
     if ('z30' in i) or ('Z30' in i):
         cv2.imwrite(postProcessing_dir + '/afterBinaryThreshold.jpg', img)
-
-    # l_ix, l_iy, l_fx, l_fy = extend_roi(img)
-
-    # img = img[l_iy:l_fy, l_ix:l_fx, 0]
-    # cv2.imshow("win", img)
-    # cv2.waitKey(0)
-    # if ('z30' in i) or ('Z30' in i):
-    #     cv2.imwrite(postProcessing_dir + '/afterCrop.jpg', img)
 
     im_og = img.copy()
 
@@ -320,52 +392,82 @@ for ind, i in enumerate(
 
 # finding stack to display in order to get z = membrane
 try:
-    z_stack = create_z_stack(file_name.split('.')[0] + "_c1/")
+    z_stack = create_z_stack(mDir + "/c1/")
+    num_stacks = z_stack.shape[0]
 except OSError:
     None
 
 # fitting convex hull on points forming final_contours
-conv_hull_full = plot_data(final_contours,
-                           file_name.split('.')[0] + '_reconstructed_' + str(ix) + '_' + str(iy) + '.png')
+conv_hull_full = plot_data(final_contours, None, cell_dir + '/reconstructed_' + str(ix) + '_' + str(iy) + '.png',
+                           38, False)
 
 # finding centroid (in entire img_dim x img_dim image) of reconstructed cell
 cx = int((ix + round(np.mean(conv_hull_full.points[conv_hull_full.vertices, 0]), 0)) * (img_dim / 480.))
 cy = int((iy + round(np.mean(conv_hull_full.points[conv_hull_full.vertices, 1]), 0)) * (img_dim / 480.))
 
 # creating the lateral slice of z stack
-print 'Centre of cell in z stack: ', (img_dim - cy)
-lateral_cs = np.array(z_stack[:, int(cx * (480. / img_dim)), :])
-# lateral_cs = np.repeat(lateral_cs, 2, 0)
+print 'Centre of cell in z stack: ', cy
+lateral_cs = np.array(z_stack[:, :, int(cx * (480. / img_dim))])
+lateral_cs = cv2.resize(lateral_cs, (img_dim, num_stacks))
 
 # figure to show z stack and point out z = membrane
-#     plt.xlabel('y')
-# plt.ylabel('z')
 fig = plt.figure()
 fig.canvas.mpl_connect('button_press_event', handle_matplotlib_mouse)
 
 plt.imshow(lateral_cs, cmap='gray')
-plt.axvline((img_dim - cy) * (480. / img_dim), c='red')
+plt.axvline(cy, c='red')
 plt.show()
 
 # membrane_z = int(round(membrane_z / 2, 0))
 membrane_z = int(round(membrane_z, 0))
+
+new_cs = []
+
+for i, mem in enumerate(lateral_cs):
+    if membrane_z - 15 < i < membrane_z + 15:
+        new_cs.append(mem)
+
+new_cs = np.array(new_cs)
+print new_cs.shape
+
+plt.imshow(new_cs, cmap='gray')
+plt.show()
 print 'Membrane Z level selected: ', membrane_z
 
 # removing all cell contour points above the z = membrane
+
 fc = np.array([])
+fc2 = np.array([])
 for ind, pts in enumerate(final_contours):
     if pts[2] <= membrane_z:
         if fc.shape[0] == 0:
             fc = np.expand_dims(pts, axis=0)
         else:
             fc = np.vstack((fc, np.expand_dims(pts, axis=0)))
+    if pts[2] > membrane_z:
+        if fc2.shape[0] == 0:
+            fc2 = np.expand_dims(pts, axis=0)
+        else:
+            fc2 = np.vstack((fc2, np.expand_dims(pts, axis=0)))
+
+print fc.shape
+print fc2.shape
 
 # applying Convex Hull to new set of points under membrane
-conv_hull_under_mem = plot_data(fc, file_name.split('.')[0] + '_underMem_' + str(ix) + '_' + str(iy) + '.png')
+try:
+    conv_hull_under_mem = plot_data(fc, fc2, cell_dir + '/underMem_' + str(ix) + '_' + str(iy) + '.png',
+                                    membrane_z, False)
+    conv_hull_full = plot_data(final_contours, None, cell_dir + '/reconstructed_' + str(ix) + '_' + str(iy) + '.png',
+                               membrane_z, True)
+    # Calculating volume (quantitative) data
+    tot_vol = conv_hull_full.volume * x_factor * y_factor * z_factor
+    vol_under_mem = conv_hull_under_mem.volume * x_factor * y_factor * z_factor
 
-# Calculating volume (quantitative) data
-tot_vol = conv_hull_full.volume * x_factor * y_factor * z_factor
-vol_under_mem = conv_hull_under_mem.volume * x_factor * y_factor * z_factor
+# Exception in case the volume invasion is 0
+except Exception, e:
+    print str(e)
+    tot_vol = conv_hull_full.volume * x_factor * y_factor * z_factor
+    vol_under_mem = 0
 
 print 'Total Volume: ', tot_vol
 print 'Volume Under Membrane: ', vol_under_mem
