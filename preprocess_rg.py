@@ -37,7 +37,8 @@ def extract_from_ND2(file_name, c):
         os.mkdir(f)
         for j, fr in enumerate(frames[0]):
             fn = file_name.split('.')
-            plt.imsave(f + str(j) + '_' + fn[0] + '.png', fr, cmap='gray')
+            print f + str(j) + '_' + fn[0].split('/')[1] + '.png'
+            plt.imsave(f + str(j) + '_' + fn[0].split('/')[1] + '.png', fr, cmap='gray')
             print("Progress: [%f]" % ((100.0 * j) / num_slices))
 
     except OSError:
@@ -264,123 +265,171 @@ for ind, i in enumerate(sorted(os.listdir(mDir + '/c2/'), key=lambda z: (int(re.
 
     img_nocrop = cv2.imread(mDir + '/c2/' + i)
     img_nocrop = cv2.resize(img_nocrop, (480, 480))
-
+    #
     cropped_img = img_nocrop[iy:fy, ix:fx, 0]
+    #
 
-    filtered_img = cv2.bilateralFilter(cropped_img, 3, 50, 50)
+    img = cropped_img
 
-    equ = cv2.equalizeHist(filtered_img)
+    filter_img = cv2.bilateralFilter(img, 5, 50, 50)
 
-    # equ = cv2.GaussianBlur(equ, (3, 3), 0
-    # plt.hist(equ.ravel(), 256, [0, 256])
-    # plt.show()
+    cl1 = cv2.equalizeHist(filter_img)
 
-    cv2.imwrite(contourLines_dir + '/cnt_0' + i, equ)
+    # clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    # cl1 = clahe.apply(filter_img)
 
-    ret2, thresholded_img = cv2.threshold(equ, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    original_img = thresholded_img.copy()
+    ret2, thresholded_img = cv2.threshold(filter_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
-    k1 = np.ones((3, 3))
-    thresholded_img = cv2.morphologyEx(thresholded_img, cv2.MORPH_OPEN, kernel=k1)
+    thresholded_img[0:1, :] = 0
+    thresholded_img[:, 0:1] = 0
+    thresholded_img[thresholded_img.shape[0] - 1:thresholded_img.shape[0], :] = 0
+    thresholded_img[:, thresholded_img.shape[1] - 1:thresholded_img.shape[1]] = 0
 
-    # removing any white pixels on border
-    thresholded_img[0:3, :] = 0
-    thresholded_img[:, 0:3] = 0
-    thresholded_img[:, thresholded_img.shape[1] - 3:thresholded_img.shape[1]] = 0
-    thresholded_img[thresholded_img.shape[0] - 3:thresholded_img.shape[0], :] = 0
-
-    cv2.imwrite(contourLines_dir + '/cnt_00' + i, thresholded_img)
-    # Copy the thresholded image.
     im_floodfill = thresholded_img.copy()
-
-    # Mask used to flood filling.
-    # Notice the size needs to be 2 pixels than the image.
     h, w = thresholded_img.shape[:2]
     mask = np.zeros((h + 2, w + 2), np.uint8)
-
-    # Floodfill from point (0, 0)
     cv2.floodFill(im_floodfill, mask, (0, 0), 255)
-
-    # Invert floodfilled image
     im_floodfill_inv = cv2.bitwise_not(im_floodfill)
-
-    # Combine the two images to get the foreground.
     floodfill_img = thresholded_img | im_floodfill_inv
 
-    cv2.imwrite(contourLines_dir + '/cnt_000' + i, floodfill_img)
+    k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    opened_img = cv2.morphologyEx(floodfill_img, cv2.MORPH_OPEN, kernel=k)
+    opened_img = cv2.dilate(opened_img, kernel=np.ones((3, 3)))
 
-    img_for_contour = floodfill_img.copy()
+    sure_bg = cv2.dilate(opened_img, kernel=np.ones((3, 3)), iterations=3)
 
-    # finding contours (array of 2d coordinates) of cell
-    _, contours, hierarchy = cv2.findContours(img_for_contour, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_TC89_L1)
+    dist_transform = cv2.distanceTransform(opened_img, cv2.DIST_L2, 5)
+    ret, sure_fg = cv2.threshold(dist_transform, 0.5 * dist_transform.max(), 255, cv2.THRESH_BINARY)
 
-    # converting image to color to enable drawing of contours
-    contour_img = cv2.cvtColor(floodfill_img, cv2.COLOR_GRAY2BGR)
+    sure_fg = np.uint8(sure_fg)
+    sure_bg = np.uint8(sure_bg)
+    unkown = cv2.subtract(sure_bg, sure_fg)
 
-    # creating blank image to draw contours of cell on
-    img_temp = np.zeros(contour_img.shape, dtype='uint8')
+    ret, markers = cv2.connectedComponents(sure_fg)
+    markers += 1
+    markers[unkown == 255] = 0
+    markers = np.int32(markers)
+    img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    markers = cv2.watershed(img, markers)
+    img[markers == -1] = [0, 255, 0]
 
-    # initializing array to store new contours after filtering out ones with too less area i.e noise
-    new_contours = np.array([])
-    max_area = 0
-    max_ind = -1
-    min_dist = 1000000
+    cv2.imshow("Img", img)
+    cv2.waitKey(0)
 
-    # loop to remove too small contours
-    for x, cont in enumerate(contours):
-        c = np.squeeze(cont)
-        if cont.shape[0] == 1:
-            c = np.expand_dims(c, 0)
-        centre = [ix + np.mean(c[:, 0]), iy + np.mean(c[:, 1])]
-
-        dist_from_roi_centre = (((roi_centre[0] - centre[0]) ** 2) + ((roi_centre[1] - centre[1]) ** 2)) ** .5
-
-        if cv2.contourArea(cont) > max_area and cv2.contourArea(cont) > 50 and dist_from_roi_centre < min_dist:
-            max_area = cv2.contourArea(cont)
-            max_ind = x
-            min_dist = dist_from_roi_centre
-
-    cont_area = max_area
-    ellipse_area = 0
-
-    # removing extra dimensions from countour array
-    if len(contours) != 0 and max_ind != -1:
-        new_contours = np.squeeze(np.array(contours[max_ind]))
-        # print ind, ": ", new_contours.shape
-        img_cont = cv2.drawContours(img_temp, [new_contours], -1, (255, 255, 255), 1)
-        cv2.imwrite(contourLines_dir + '/cont_000' + i, img_cont)
-
-    # fitting the closest ellipse (approximation) to the contours in order to take care of cell boundaries that might
-    # not have been picked up
-    if new_contours.shape[0] >= 5:
-        ellipse = cv2.fitEllipse(new_contours)
-
-        img_temp = np.zeros(contour_img.shape, dtype='uint8')
-        ellipse_img = cv2.ellipse(img_temp, ellipse, (255, 255, 255), -1)
-
-        ellipse_img = cv2.cvtColor(ellipse_img, cv2.COLOR_BGR2GRAY)
-        im = ellipse_img.copy()
-
-        _, contours, hierarchy = cv2.findContours(im, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_SIMPLE)
-        img_temp = np.zeros(contour_img.shape, dtype='uint8')
-        ellipse_img = cv2.drawContours(img_temp, contours, 0, (255, 255, 255), 1)
-
-        ellipse_area = cv2.contourArea(contours[0])
-
-        cv2.imwrite(contourLines_dir + '/cont_ellipse_' + i, ellipse_img)
-
-        new_contours = np.squeeze(np.array(contours))
-
-        if len(new_contours) != 0:
-            new_contours = np.insert(new_contours, 2, (ind + 1), axis=1)
-            if final_contours.shape[0] == 0:
-                final_contours = new_contours
-            else:
-                final_contours = np.vstack((final_contours, new_contours))
-    else:
-        final_img = img_temp
-
-    print("%d - Difference: %3f" % (ind, ellipse_area - cont_area))
+    # filtered_img = cv2.bilateralFilter(cropped_img, 3, 50, 50)
+    #
+    # equ = cv2.equalizeHist(filtered_img)
+    #
+    # # equ = cv2.GaussianBlur(equ, (3, 3), 0
+    # # plt.hist(equ.ravel(), 256, [0, 256])
+    # # plt.show()
+    #
+    # cv2.imwrite(contourLines_dir + '/cnt_0' + i, equ)
+    #
+    # ret2, thresholded_img = cv2.threshold(equ, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    # original_img = thresholded_img.copy()
+    #
+    # k1 = np.ones((3, 3))
+    # thresholded_img = cv2.morphologyEx(thresholded_img, cv2.MORPH_OPEN, kernel=k1)
+    #
+    # # removing any white pixels on border
+    # thresholded_img[0:3, :] = 0
+    # thresholded_img[:, 0:3] = 0
+    # thresholded_img[:, thresholded_img.shape[1] - 3:thresholded_img.shape[1]] = 0
+    # thresholded_img[thresholded_img.shape[0] - 3:thresholded_img.shape[0], :] = 0
+    #
+    # cv2.imwrite(contourLines_dir + '/cnt_00' + i, thresholded_img)
+    # # Copy the thresholded image.
+    # im_floodfill = thresholded_img.copy()
+    #
+    # # Mask used to flood filling.
+    # # Notice the size needs to be 2 pixels than the image.
+    # h, w = thresholded_img.shape[:2]
+    # mask = np.zeros((h + 2, w + 2), np.uint8)
+    #
+    # # Floodfill from point (0, 0)
+    # cv2.floodFill(im_floodfill, mask, (0, 0), 255)
+    #
+    # # Invert floodfilled image
+    # im_floodfill_inv = cv2.bitwise_not(im_floodfill)
+    #
+    # # Combine the two images to get the foreground.
+    # floodfill_img = thresholded_img | im_floodfill_inv
+    #
+    # cv2.imwrite(contourLines_dir + '/cnt_000' + i, floodfill_img)
+    #
+    # img_for_contour = floodfill_img.copy()
+    #
+    # # finding contours (array of 2d coordinates) of cell
+    # _, contours, hierarchy = cv2.findContours(img_for_contour, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_TC89_L1)
+    #
+    # # converting image to color to enable drawing of contours
+    # contour_img = cv2.cvtColor(floodfill_img, cv2.COLOR_GRAY2BGR)
+    #
+    # # creating blank image to draw contours of cell on
+    # img_temp = np.zeros(contour_img.shape, dtype='uint8')
+    #
+    # # initializing array to store new contours after filtering out ones with too less area i.e noise
+    # new_contours = np.array([])
+    # max_area = 0
+    # max_ind = -1
+    # min_dist = 1000000
+    #
+    # # loop to remove too small contours
+    # for x, cont in enumerate(contours):
+    #     c = np.squeeze(cont)
+    #     if cont.shape[0] == 1:
+    #         c = np.expand_dims(c, 0)
+    #     centre = [ix + np.mean(c[:, 0]), iy + np.mean(c[:, 1])]
+    #
+    #     dist_from_roi_centre = (((roi_centre[0] - centre[0]) ** 2) + ((roi_centre[1] - centre[1]) ** 2)) ** .5
+    #
+    #     if cv2.contourArea(cont) > max_area and cv2.contourArea(cont) > 50 and dist_from_roi_centre < min_dist:
+    #         max_area = cv2.contourArea(cont)
+    #         max_ind = x
+    #         min_dist = dist_from_roi_centre
+    #
+    # cont_area = max_area
+    # ellipse_area = 0
+    #
+    # # removing extra dimensions from countour array
+    # if len(contours) != 0 and max_ind != -1:
+    #     new_contours = np.squeeze(np.array(contours[max_ind]))
+    #     # print ind, ": ", new_contours.shape
+    #     img_cont = cv2.drawContours(img_temp, [new_contours], -1, (255, 255, 255), 1)
+    #     cv2.imwrite(contourLines_dir + '/cont_000' + i, img_cont)
+    #
+    # # fitting the closest ellipse (approximation) to the contours in order to take care of cell boundaries that might
+    # # not have been picked up
+    # if new_contours.shape[0] >= 5:
+    #     ellipse = cv2.fitEllipse(new_contours)
+    #
+    #     img_temp = np.zeros(contour_img.shape, dtype='uint8')
+    #     ellipse_img = cv2.ellipse(img_temp, ellipse, (255, 255, 255), -1)
+    #
+    #     ellipse_img = cv2.cvtColor(ellipse_img, cv2.COLOR_BGR2GRAY)
+    #     im = ellipse_img.copy()
+    #
+    #     _, contours, hierarchy = cv2.findContours(im, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_SIMPLE)
+    #     img_temp = np.zeros(contour_img.shape, dtype='uint8')
+    #     ellipse_img = cv2.drawContours(img_temp, contours, 0, (255, 255, 255), 1)
+    #
+    #     ellipse_area = cv2.contourArea(contours[0])
+    #
+    #     cv2.imwrite(contourLines_dir + '/cont_ellipse_' + i, ellipse_img)
+    #
+    #     new_contours = np.squeeze(np.array(contours))
+    #
+    #     if len(new_contours) != 0:
+    #         new_contours = np.insert(new_contours, 2, (ind + 1), axis=1)
+    #         if final_contours.shape[0] == 0:
+    #             final_contours = new_contours
+    #         else:
+    #             final_contours = np.vstack((final_contours, new_contours))
+    # else:
+    #     final_img = img_temp
+    #
+    # print("%d - Difference: %3f" % (ind, ellipse_area - cont_area))
 
 # fitting convex hull on points forming final_contours
 conv_hull_full = plot_data(final_contours, None, cell_dir + '/reconstructed_' + str(ix) + '_' + str(iy) + '.png',
