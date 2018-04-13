@@ -60,56 +60,31 @@ extract_from_ND2(file_name, 2)
 mid_file_name = mDir + '/c2/'
 slices = sorted(os.listdir(mDir + '/c2/'), key=lambda z: (int(re.sub('\D', '', z)), z))
 
-# print slices
-
 for ind, i in enumerate(slices):
-    if ind < 45:
+    if ind < 40:
         continue
 
     fn = mid_file_name + i
 
     img = cv2.imread(fn)
-    img_dim = img.shape[1]
     img = cv2.resize(img, (480, 480))
-
     img = img[:, :, 0]
 
-    filter_img = cv2.bilateralFilter(img, 3, 75, 75)
+    k_morph = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+    open_img = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel=k_morph)
+    close_img = cv2.morphologyEx(open_img, cv2.MORPH_OPEN, kernel=k_morph)
 
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    cl1 = clahe.apply(filter_img)
+    # clahe = cv2.createCLAHE(clipLimit=0.5, tileGridSize=(4, 4))
+    # eq_img = clahe.apply(close_img)
 
-    ret2, thresholded_img = cv2.threshold(filter_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    filter_img = cv2.GaussianBlur(close_img, (5, 5), 0)
+    # gradient_img = cv2.Laplacian(filter_img, ddepth=cv2.CV_64F, ksize=15)
+    # gradient_img = cv2.Canny()
+    sobelx = cv2.Sobel(filter_img, cv2.CV_64F, 1, 0, ksize=5)
+    sobely = cv2.Sobel(filter_img, cv2.CV_64F, 0, 1, ksize=5)
+    gradient_img = cv2.add(sobelx, sobely)
 
-    thresholded_img[0:1, :] = 0
-    thresholded_img[:, 0:1] = 0
-    thresholded_img[thresholded_img.shape[0] - 1:thresholded_img.shape[0], :] = 0
-    thresholded_img[:, thresholded_img.shape[1] - 1:thresholded_img.shape[1]] = 0
+    final_img = gradient_img
 
-    im_floodfill = thresholded_img.copy()
-    h, w = thresholded_img.shape[:2]
-    mask = np.zeros((h + 2, w + 2), np.uint8)
-    cv2.floodFill(im_floodfill, mask, (0, 0), 255)
-    im_floodfill_inv = cv2.bitwise_not(im_floodfill)
-    floodfill_img = thresholded_img | im_floodfill_inv
-
-    k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-    opened_img = cv2.morphologyEx(floodfill_img, cv2.MORPH_OPEN, kernel=k, iterations=2)
-
-    sure_bg = cv2.dilate(opened_img, kernel=k, iterations=3)
-    dist_transform = cv2.distanceTransform(opened_img, cv2.DIST_L2, 5)
-    ret, sure_fg = cv2.threshold(dist_transform, 0.4 * dist_transform.max(), 255, cv2.THRESH_BINARY)
-    sure_fg = np.uint8(sure_fg)
-    sure_bg = np.uint8(sure_bg)
-    unkown = cv2.subtract(sure_bg, sure_fg)
-    ret, markers = cv2.connectedComponents(sure_fg)
-    markers += 1
-    markers[unkown == 255] = 0
-    markers = np.int32(markers)
-    img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-
-    markers = cv2.watershed(img, markers)
-    img[markers == -1] = [255, 0, 0]
-
-    cv2.imshow("Img", img)
+    cv2.imshow("Img", final_img)
     cv2.waitKey(0)
