@@ -9,12 +9,21 @@ from pims import ND2_Reader
 import matplotlib.pyplot as plt
 from scipy.spatial import ConvexHull
 
+from zstack_formation import create_z_stack
+
 calib = 0
 img_dim = 0
 num_stacks = 0
 ix, iy, fx, fy = 0, 0, 0, 0
 membrane_z = 0
 drawing = False
+cell_num = 0
+next_cell_flag = False
+rect_color = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255),
+              (255, 0, 255), (128, 0, 0), (0, 128, 0), (0, 0, 128), (128, 128, 0),
+              (0, 128, 128), (128, 0, 128), (48, 130, 245), (60, 245, 210), (40, 110, 170)]
+cell_coords_x = []
+cell_coords_y = []
 
 
 def extract_from_ND2(file_name, c):
@@ -59,17 +68,19 @@ extract_from_ND2(file_name, 2)
 
 # function handling drawing of bounding box for selected cell
 def handle_opencv_mouse(event, x, y, flags, params):
-    global ix, iy, fx, fy, drawing, img, im, img_copy
+    global ix, iy, fx, fy, img, img_copy, next_cell_flag, cell_num
+
+    if next_cell_flag:
+        img = img_copy
+        next_cell_flag = False
 
     if event == cv2.EVENT_LBUTTONDOWN:
         img_copy = img.copy()
-        drawing = True
         ix, iy = x, y
 
     if event == cv2.EVENT_LBUTTONUP:
-        drawing = False
         fx, fy = x, y
-        cv2.rectangle(img_copy, (ix, iy), (fx, fy), (0, 255, 0), 1)
+        cv2.rectangle(img_copy, (ix, iy), (fx, fy), rect_color[cell_num], 1)
 
 
 # function to handle matplotlib mouse press event
@@ -149,41 +160,37 @@ def plot_data(contours, cnt2, fname, mem_z, draw_flag):
 
 
 # function to create a z stack from a set of slices
-def create_z_stack(path):
-    global num_stacks
+# def create_z_stack(path):
+#     global num_stacks
+#
+#     Z_stack = np.array([])
+#
+#     # search for existing stack, else create
+#     try:
+#         print("Trying to load existing Z Stack.")
+#         Z_stack = np.load(path + '/0Z_STACK.npy')
+#     except IOError:
+#         print("Z Stack doesn't exist. Creating now.")
+#
+#         slices = sorted(os.listdir(path), key=lambda z: (int(re.sub('\D', '', z)), z))
+#         num_slices = len(slices)
+#         num_stacks = num_slices
+#         # loops through slices to create stack using np.vstack
+#         for ind, i in enumerate(slices):
+#             if i.endswith('.jpeg') or i.endswith('.png'):
+#                 img_name = path + '/' + i
+#                 img = plt.imread(img_name)[:, :, 0]
+#                 img = cv2.resize(img, (480, 480))
+#                 if Z_stack.shape[0] == 0:
+#                     Z_stack = np.expand_dims(img, axis=0)
+#                 else:
+#                     Z_stack = np.vstack((Z_stack, np.expand_dims(img, axis=0)))
+#             print "Progress: [%d%%]\r" % (((ind + 1) / (1.0 * num_slices)) * 100)
+#
+#         np.save(path + '/0Z_STACK.npy', Z_stack, allow_pickle=True)
+#
+#     return Z_stack
 
-    Z_stack = np.array([])
-
-    # search for existing stack, else create
-    try:
-        print("Trying to load existing Z Stack.")
-        Z_stack = np.load(path + '/0Z_STACK.npy')
-    except IOError:
-        print("Z Stack doesn't exist. Creating now.")
-
-        slices = sorted(os.listdir(path), key=lambda z: (int(re.sub('\D', '', z)), z))
-        num_slices = len(slices)
-        num_stacks = num_slices
-        # loops through slices to create stack using np.vstack
-        for ind, i in enumerate(slices):
-            if i.endswith('.jpeg') or i.endswith('.png'):
-                img_name = path + '/' + i
-                img = plt.imread(img_name)[:, :, 0]
-                img = cv2.resize(img, (480, 480))
-                if Z_stack.shape[0] == 0:
-                    Z_stack = np.expand_dims(img, axis=0)
-                else:
-                    Z_stack = np.vstack((Z_stack, np.expand_dims(img, axis=0)))
-            print "Progress: [%d%%]\r" % (((ind + 1) / (1.0 * num_slices)) * 100)
-
-        np.save(path + '/0Z_STACK.npy', Z_stack, allow_pickle=True)
-
-    return Z_stack
-
-
-# initializing OpenCV window and drawing event handling
-cv2.namedWindow('Image')
-cv2.setMouseCallback('Image', handle_opencv_mouse)
 
 # Loading the image corresponding middle value of upper and lower z inputs to enable bounding box drawing for cell
 # selection + resizing
@@ -199,16 +206,15 @@ for ind, i in enumerate(slices):
 print mid_file_name
 print "Microscope Calibration: ", calib
 
+# initializing OpenCV window and drawing event handling
+cv2.namedWindow('Image', cv2.WINDOW_NORMAL)
+cv2.setMouseCallback('Image', handle_opencv_mouse)
 img = cv2.imread(mid_file_name)
 img_dim = img.shape[1]
-img = cv2.resize(img, (480, 480))
-
-# plt.imshow(img)
-# plt.show()
 
 # setting up image:microscope scale variables
-x_factor = (img_dim / 480.) * calib
-y_factor = (img_dim / 480.) * calib
+x_factor = img_dim * calib
+y_factor = img_dim * calib
 z_factor = 0.2
 
 # Loop handling drawing of bounding boxes
@@ -218,6 +224,14 @@ while True:
     k = cv2.waitKey(1)
     if k == ord('x'):
         break
+    if k == ord('n'):
+        cell_coords_x.append((ix, fx))
+        cell_coords_y.append((iy, fy))
+        next_cell_flag = True
+        cell_num += 1
+
+print cell_coords_x
+print cell_coords_y
 
 # destroying initial OpenCV display window and closing it
 cv2.destroyAllWindows()
@@ -247,270 +261,135 @@ except OSError:
     os.mkdir(contourLines_dir)
     os.mkdir(filtered_dir)
 
-roi_centre = [(ix + fx) / 2, (iy + fy) / 2] * int(img_dim / 480.)
-
-print("Rectangle coordinates: (%3f, %3f) (%3f, %3f)" % (ix, iy, fx, fy))
-print("Centre of bounding box: (%3f, %3f)" % (roi_centre[0], roi_centre[1]))
-
-# histogram_equalization
-# clahe
-
 
 prev_img = None
 
-# looping through the z slices to extract cell countours in each slice
-for ind, i in enumerate(sorted(os.listdir(mDir + '/c2/'), key=lambda z: (int(re.sub('\D', '', z)), z))):
-    if i.startswith('.') or i.endswith('.npy') or ind < int(sys.argv[2]) or ind > int(sys.argv[3]):
-        continue
+# loop to handle multiple cells
+for cn in range(cell_num):
 
-    img_nocrop = cv2.imread(mDir + '/c2/' + i)
-    img_nocrop = cv2.resize(img_nocrop, (480, 480))
-    #
-    cropped_img = img_nocrop[iy:fy, ix:fx, 0]
-    #
+    print "CELL NUMBER: ", cn+1
+    iy = cell_coords_y[cn][0]
+    fy = cell_coords_y[cn][1]
+    ix = cell_coords_x[cn][0]
+    fx = cell_coords_x[cn][1]
+    roi_centre = [(ix + fx) / 2, (iy + fy) / 2]
+    print("Centre of bounding box: (%3f, %3f)" % (roi_centre[0], roi_centre[1]))
 
-    img = cropped_img
+    # looping through the z slices to extract cell countours in each slice
+    for ind, i in enumerate(sorted(os.listdir(mDir + '/c2/'), key=lambda z: (int(re.sub('\D', '', z)), z))):
+        if i.startswith('.') or i.endswith('.npy') or ind < int(sys.argv[2]) or ind > int(sys.argv[3]):
+            continue
+        img_nocrop = cv2.imread(mDir + '/c2/' + i)
+        cropped_img = img_nocrop[iy:fy, ix:fx, 0]
 
-    filter_img = cv2.bilateralFilter(img, 5, 50, 50)
+        # # removing extra dimensions from countour array
+        # if len(contours) != 0 and max_ind != -1:
+        #     new_contours = np.squeeze(np.array(contours[max_ind]))
+        #     # print ind, ": ", new_contours.shape
+        #     img_cont = cv2.drawContours(img_temp, [new_contours], -1, (255, 255, 255), 1)
+        #     cv2.imwrite(contourLines_dir + '/cont_000' + i, img_cont)
+        #
+        # # fitting the closest ellipse (approximation) to the contours in order to take care of cell boundaries that might
+        # # not have been picked up
+        # if new_contours.shape[0] >= 5:
+        #     ellipse = cv2.fitEllipse(new_contours)
+        #
+        #     img_temp = np.zeros(contour_img.shape, dtype='uint8')
+        #     ellipse_img = cv2.ellipse(img_temp, ellipse, (255, 255, 255), -1)
+        #
+        #     ellipse_img = cv2.cvtColor(ellipse_img, cv2.COLOR_BGR2GRAY)
+        #     im = ellipse_img.copy()
+        #
+        #     _, contours, hierarchy = cv2.findContours(im, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_SIMPLE)
+        #     img_temp = np.zeros(contour_img.shape, dtype='uint8')
+        #     ellipse_img = cv2.drawContours(img_temp, contours, 0, (255, 255, 255), 1)
+        #
+        #     ellipse_area = cv2.contourArea(contours[0])
+        #
+        #     cv2.imwrite(contourLines_dir + '/cont_ellipse_' + i, ellipse_img)
+        #
+        #     new_contours = np.squeeze(np.array(contours))
+        #
+        #     if len(new_contours) != 0:
+        #         new_contours = np.insert(new_contours, 2, (ind + 1), axis=1)
+        #         if final_contours.shape[0] == 0:
+        #             final_contours = new_contours
+        #         else:
+        #             final_contours = np.vstack((final_contours, new_contours))
+        # else:
+        #     final_img = img_temp
+        #
+        # print("%d - Difference: %3f" % (ind, ellipse_area - cont_area))
 
-    cl1 = cv2.equalizeHist(filter_img)
-
-    # clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    # cl1 = clahe.apply(filter_img)
-
-    ret2, thresholded_img = cv2.threshold(filter_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
-    thresholded_img[0:1, :] = 0
-    thresholded_img[:, 0:1] = 0
-    thresholded_img[thresholded_img.shape[0] - 1:thresholded_img.shape[0], :] = 0
-    thresholded_img[:, thresholded_img.shape[1] - 1:thresholded_img.shape[1]] = 0
-
-    im_floodfill = thresholded_img.copy()
-    h, w = thresholded_img.shape[:2]
-    mask = np.zeros((h + 2, w + 2), np.uint8)
-    cv2.floodFill(im_floodfill, mask, (0, 0), 255)
-    im_floodfill_inv = cv2.bitwise_not(im_floodfill)
-    floodfill_img = thresholded_img | im_floodfill_inv
-
-    k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-    opened_img = cv2.morphologyEx(floodfill_img, cv2.MORPH_OPEN, kernel=k)
-    opened_img = cv2.dilate(opened_img, kernel=np.ones((3, 3)))
-
-    sure_bg = cv2.dilate(opened_img, kernel=np.ones((3, 3)), iterations=3)
-
-    dist_transform = cv2.distanceTransform(opened_img, cv2.DIST_L2, 5)
-    ret, sure_fg = cv2.threshold(dist_transform, 0.5 * dist_transform.max(), 255, cv2.THRESH_BINARY)
-
-    sure_fg = np.uint8(sure_fg)
-    sure_bg = np.uint8(sure_bg)
-    unkown = cv2.subtract(sure_bg, sure_fg)
-
-    ret, markers = cv2.connectedComponents(sure_fg)
-    markers += 1
-    markers[unkown == 255] = 0
-    markers = np.int32(markers)
-    img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-    markers = cv2.watershed(img, markers)
-    img[markers == -1] = [0, 255, 0]
-
-    cv2.imshow("Img", img)
-    cv2.waitKey(0)
-
-    # filtered_img = cv2.bilateralFilter(cropped_img, 3, 50, 50)
-    #
-    # equ = cv2.equalizeHist(filtered_img)
-    #
-    # # equ = cv2.GaussianBlur(equ, (3, 3), 0
-    # # plt.hist(equ.ravel(), 256, [0, 256])
-    # # plt.show()
-    #
-    # cv2.imwrite(contourLines_dir + '/cnt_0' + i, equ)
-    #
-    # ret2, thresholded_img = cv2.threshold(equ, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    # original_img = thresholded_img.copy()
-    #
-    # k1 = np.ones((3, 3))
-    # thresholded_img = cv2.morphologyEx(thresholded_img, cv2.MORPH_OPEN, kernel=k1)
-    #
-    # # removing any white pixels on border
-    # thresholded_img[0:3, :] = 0
-    # thresholded_img[:, 0:3] = 0
-    # thresholded_img[:, thresholded_img.shape[1] - 3:thresholded_img.shape[1]] = 0
-    # thresholded_img[thresholded_img.shape[0] - 3:thresholded_img.shape[0], :] = 0
-    #
-    # cv2.imwrite(contourLines_dir + '/cnt_00' + i, thresholded_img)
-    # # Copy the thresholded image.
-    # im_floodfill = thresholded_img.copy()
-    #
-    # # Mask used to flood filling.
-    # # Notice the size needs to be 2 pixels than the image.
-    # h, w = thresholded_img.shape[:2]
-    # mask = np.zeros((h + 2, w + 2), np.uint8)
-    #
-    # # Floodfill from point (0, 0)
-    # cv2.floodFill(im_floodfill, mask, (0, 0), 255)
-    #
-    # # Invert floodfilled image
-    # im_floodfill_inv = cv2.bitwise_not(im_floodfill)
-    #
-    # # Combine the two images to get the foreground.
-    # floodfill_img = thresholded_img | im_floodfill_inv
-    #
-    # cv2.imwrite(contourLines_dir + '/cnt_000' + i, floodfill_img)
-    #
-    # img_for_contour = floodfill_img.copy()
-    #
-    # # finding contours (array of 2d coordinates) of cell
-    # _, contours, hierarchy = cv2.findContours(img_for_contour, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_TC89_L1)
-    #
-    # # converting image to color to enable drawing of contours
-    # contour_img = cv2.cvtColor(floodfill_img, cv2.COLOR_GRAY2BGR)
-    #
-    # # creating blank image to draw contours of cell on
-    # img_temp = np.zeros(contour_img.shape, dtype='uint8')
-    #
-    # # initializing array to store new contours after filtering out ones with too less area i.e noise
-    # new_contours = np.array([])
-    # max_area = 0
-    # max_ind = -1
-    # min_dist = 1000000
-    #
-    # # loop to remove too small contours
-    # for x, cont in enumerate(contours):
-    #     c = np.squeeze(cont)
-    #     if cont.shape[0] == 1:
-    #         c = np.expand_dims(c, 0)
-    #     centre = [ix + np.mean(c[:, 0]), iy + np.mean(c[:, 1])]
-    #
-    #     dist_from_roi_centre = (((roi_centre[0] - centre[0]) ** 2) + ((roi_centre[1] - centre[1]) ** 2)) ** .5
-    #
-    #     if cv2.contourArea(cont) > max_area and cv2.contourArea(cont) > 50 and dist_from_roi_centre < min_dist:
-    #         max_area = cv2.contourArea(cont)
-    #         max_ind = x
-    #         min_dist = dist_from_roi_centre
-    #
-    # cont_area = max_area
-    # ellipse_area = 0
-    #
-    # # removing extra dimensions from countour array
-    # if len(contours) != 0 and max_ind != -1:
-    #     new_contours = np.squeeze(np.array(contours[max_ind]))
-    #     # print ind, ": ", new_contours.shape
-    #     img_cont = cv2.drawContours(img_temp, [new_contours], -1, (255, 255, 255), 1)
-    #     cv2.imwrite(contourLines_dir + '/cont_000' + i, img_cont)
-    #
-    # # fitting the closest ellipse (approximation) to the contours in order to take care of cell boundaries that might
-    # # not have been picked up
-    # if new_contours.shape[0] >= 5:
-    #     ellipse = cv2.fitEllipse(new_contours)
-    #
-    #     img_temp = np.zeros(contour_img.shape, dtype='uint8')
-    #     ellipse_img = cv2.ellipse(img_temp, ellipse, (255, 255, 255), -1)
-    #
-    #     ellipse_img = cv2.cvtColor(ellipse_img, cv2.COLOR_BGR2GRAY)
-    #     im = ellipse_img.copy()
-    #
-    #     _, contours, hierarchy = cv2.findContours(im, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_SIMPLE)
-    #     img_temp = np.zeros(contour_img.shape, dtype='uint8')
-    #     ellipse_img = cv2.drawContours(img_temp, contours, 0, (255, 255, 255), 1)
-    #
-    #     ellipse_area = cv2.contourArea(contours[0])
-    #
-    #     cv2.imwrite(contourLines_dir + '/cont_ellipse_' + i, ellipse_img)
-    #
-    #     new_contours = np.squeeze(np.array(contours))
-    #
-    #     if len(new_contours) != 0:
-    #         new_contours = np.insert(new_contours, 2, (ind + 1), axis=1)
-    #         if final_contours.shape[0] == 0:
-    #             final_contours = new_contours
-    #         else:
-    #             final_contours = np.vstack((final_contours, new_contours))
-    # else:
-    #     final_img = img_temp
-    #
-    # print("%d - Difference: %3f" % (ind, ellipse_area - cont_area))
-
-# fitting convex hull on points forming final_contours
-conv_hull_full = plot_data(final_contours, None, cell_dir + '/reconstructed_' + str(ix) + '_' + str(iy) + '.png',
-                           38, False)
-
-# finding centroid (in entire img_dim x img_dim image) of reconstructed cell
-cx = int((ix + round(np.mean(conv_hull_full.points[conv_hull_full.vertices, 0]), 0)) * (img_dim / 480.))
-cy = int((iy + round(np.mean(conv_hull_full.points[conv_hull_full.vertices, 1]), 0)) * (img_dim / 480.))
-
-# finding stack to display in order to get z = membrane
-try:
-    z_stack = create_z_stack(mDir + "/c1/")
-    num_stacks = z_stack.shape[0]
-except OSError:
-    None
-
-# creating the lateral slice of z stack
-print 'Centre of cell in z stack: ', cy
-lateral_cs = np.array(z_stack[:, :, int(cx * (480. / img_dim))])
-lateral_cs = cv2.resize(lateral_cs, (img_dim, num_stacks))
-
-# figure to show z stack and point out z = membrane
-fig = plt.figure()
-fig.canvas.mpl_connect('button_press_event', handle_matplotlib_mouse)
-
-plt.imshow(lateral_cs, cmap='gray')
-plt.axvline(cy, c='red')
-plt.show()
-
-# membrane_z = int(round(membrane_z / 2, 0))
-membrane_z = int(round(membrane_z, 0))
-
-# new_cs = []
-#
-# for i, mem in enumerate(lateral_cs):
-#     if membrane_z - 15 < i < membrane_z + 15:
-#         new_cs.append(mem)
-#
-# new_cs = np.array(new_cs)
-# print new_cs.shape
-#
-# plt.imshow(new_cs, cmap='gray')
-# plt.show()
-print 'Membrane Z level selected: ', membrane_z
-
-# removing all cell contour points above the z = membrane
-
-fc = np.array([])
-fc2 = np.array([])
-for ind, pts in enumerate(final_contours):
-    if pts[2] <= membrane_z:
-        if fc.shape[0] == 0:
-            fc = np.expand_dims(pts, axis=0)
-        else:
-            fc = np.vstack((fc, np.expand_dims(pts, axis=0)))
-    if pts[2] > membrane_z:
-        if fc2.shape[0] == 0:
-            fc2 = np.expand_dims(pts, axis=0)
-        else:
-            fc2 = np.vstack((fc2, np.expand_dims(pts, axis=0)))
-
-# print fc.shape
-# print fc2.shape
-
-# applying Convex Hull to new set of points under membrane
-try:
-    conv_hull_under_mem = plot_data(fc, fc2, cell_dir + '/underMem_' + str(ix) + '_' + str(iy) + '.png',
-                                    membrane_z, False)
+    # fitting convex hull on points forming final_contours
     conv_hull_full = plot_data(final_contours, None, cell_dir + '/reconstructed_' + str(ix) + '_' + str(iy) + '.png',
-                               membrane_z, True)
+                               38, False)
 
-    # Calculating volume (quantitative) data
-    tot_vol = conv_hull_full.volume * x_factor * y_factor * z_factor
-    vol_under_mem = conv_hull_under_mem.volume * x_factor * y_factor * z_factor
+    # finding centroid (in entire img_dim x img_dim image) of reconstructed cell
+    cx = int(ix + round(np.mean(conv_hull_full.points[conv_hull_full.vertices, 0]), 0))
+    cy = int(iy + round(np.mean(conv_hull_full.points[conv_hull_full.vertices, 1]), 0))
 
-# Exception in case the volume invasion is 0
-except Exception, e:
-    print str(e)
-    tot_vol = conv_hull_full.volume * x_factor * y_factor * z_factor
-    vol_under_mem = 0
+    # finding stack to display in order to get z = membrane
+    try:
+        z_stack = create_z_stack(mDir + "/c1/")
+        num_stacks = z_stack.shape[0]
+    except OSError:
+        None
 
-print 'Total Volume: ', tot_vol
-print 'Volume Under Membrane: ', vol_under_mem
-print 'Percentage of cell under membrane: ', ((vol_under_mem / tot_vol) * 100)
+    # creating the lateral slice of z stack
+    print 'Centre of cell in z stack: ', cy
+    lateral_cs = np.array(z_stack[:, :, int(cx)])
+
+    # figure to show z stack and point out z = membrane
+    fig = plt.figure()
+    fig.canvas.mpl_connect('button_press_event', handle_matplotlib_mouse)
+
+    plt.imshow(lateral_cs, cmap='gray')
+    plt.axvline(cy, c='red')
+    plt.show()
+
+    # membrane_z = int(round(membrane_z / 2, 0))
+    membrane_z = int(round(membrane_z, 0))
+
+    print 'Membrane Z level selected: ', membrane_z
+
+    # removing all cell contour points above the z = membrane
+
+    fc = np.array([])
+    fc2 = np.array([])
+    for ind, pts in enumerate(final_contours):
+        if pts[2] <= membrane_z:
+            if fc.shape[0] == 0:
+                fc = np.expand_dims(pts, axis=0)
+            else:
+                fc = np.vstack((fc, np.expand_dims(pts, axis=0)))
+        if pts[2] > membrane_z:
+            if fc2.shape[0] == 0:
+                fc2 = np.expand_dims(pts, axis=0)
+            else:
+                fc2 = np.vstack((fc2, np.expand_dims(pts, axis=0)))
+
+    # print fc.shape
+    # print fc2.shape
+
+    # applying Convex Hull to new set of points under membrane
+    try:
+        conv_hull_under_mem = plot_data(fc, fc2, cell_dir + '/underMem_' + str(ix) + '_' + str(iy) + '.png',
+                                        membrane_z, False)
+        conv_hull_full = plot_data(final_contours, None,
+                                   cell_dir + '/reconstructed_' + str(ix) + '_' + str(iy) + '.png',
+                                   membrane_z, True)
+
+        # Calculating volume (quantitative) data
+        tot_vol = conv_hull_full.volume * x_factor * y_factor * z_factor
+        vol_under_mem = conv_hull_under_mem.volume * x_factor * y_factor * z_factor
+
+    # Exception in case the volume invasion is 0
+    except Exception, e:
+        print str(e)
+        tot_vol = conv_hull_full.volume * x_factor * y_factor * z_factor
+        vol_under_mem = 0
+
+    print 'Total Volume: ', tot_vol
+    print 'Volume Under Membrane: ', vol_under_mem
+    print 'Percentage of cell under membrane: ', ((vol_under_mem / tot_vol) * 100)
