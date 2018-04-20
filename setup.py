@@ -4,8 +4,8 @@ setup(
    name='Q-Pi',
    version='1.0',
    description='A useful module',
-   author='Man Foo',
-   author_email='foomail@foo.com',
+   author='Upamanyu Ghose',
+   author_email='titoghose@gmail.com',
    packages=['Q-Pi'],  #same as name
-   install_requires=['mayavi', 'librosa'], #external packages as dependencies
+   install_requires=['numpy', 'scipy', 'matplotlib', 'pims', 'mayavi', 'opencv-python'], #external packages as dependencies
 )
