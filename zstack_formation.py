@@ -5,10 +5,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def create_z_stack(path, x1, x2, y1, y2):
+def create_z_stack(path, x1, x2, y1, y2, alpha=1):
     global num_stacks
 
     Z_stack = np.array([])
+    num_slices = 0
 
     # search for existing stack, else create
     try:
@@ -19,28 +20,23 @@ def create_z_stack(path, x1, x2, y1, y2):
 
         slices = sorted(os.listdir(path), key=lambda z: (int(re.sub('\D', '', z)), z))
         num_slices = len(slices)
-        num_stacks = num_slices
         # loops through slices to create stack using np.vstack
         for ind, i in enumerate(slices):
             if i.endswith('.jpeg') or i.endswith('.png'):
                 img_name = path + '/' + i
                 img = cv2.imread(img_name)[:, :, 0]
-                # img = cv2.medianBlur(img, 7)
                 img = cv2.bilateralFilter(img, 5, 50, 50)
                 img = cv2.equalizeHist(img)
                 img = cv2.erode(img, kernel=cv2.getStructuringElement(cv2.MORPH_ERODE, (3, 3)))
-                # final_img = np.hstack((cv2.cvtColor(img, cv2.COLOR_GRAY2BGR), img_t))
-                # cv2.namedWindow("img", cv2.WINDOW_NORMAL)
-                # cv2.imshow("img", final_img)
-                # cv2.waitKey(0)
                 if Z_stack.shape[0] == 0:
                     Z_stack = np.expand_dims(img, axis=0)
                 else:
-                    Z_stack = np.vstack((np.expand_dims(img, axis=0), Z_stack))
+                    Z_stack = np.vstack((Z_stack, np.expand_dims(img, axis=0)))
             print "Progress: [%d%%]\r" % (((ind + 1) / (1.0 * num_slices)) * 100)
 
         np.save(path + '/0Z_STACK.npy', Z_stack, allow_pickle=True)
 
+    num_slices = Z_stack.shape[0]
     lateral_cs1 = np.array(Z_stack[:, :, (x1 + x2) / 2])
     lateral_cs2 = np.array(Z_stack[:, (y1 + y2) / 2, :])
 
@@ -50,47 +46,51 @@ def create_z_stack(path, x1, x2, y1, y2):
     roi2 = cv2.bilateralFilter(roi2, 3, 50, 50)
     ret, thresh_roi1 = cv2.threshold(roi1, 0, 255, cv2.THRESH_OTSU + cv2.THRESH_BINARY)
     ret, thresh_roi2 = cv2.threshold(roi2, 0, 255, cv2.THRESH_OTSU + cv2.THRESH_BINARY)
-    thresh_roi1[:, 10:thresh_roi1.shape[1] - 10] = 0
-    thresh_roi2[:, 10:thresh_roi2.shape[1] - 10] = 0
 
-    analyse_stack1 = thresh_roi1[:, 0:10]
-    analyse_stack2 = thresh_roi2[:, 0:10]
-    analyse_stack3 = thresh_roi2[:, thresh_roi1.shape[1] - 10:thresh_roi1.shape[1]]
-    analyse_stack4 = thresh_roi2[:, thresh_roi2.shape[1] - 10:thresh_roi2.shape[1]]
+    window_size1 = alpha * thresh_roi1.shape[1] - 1
+    window_size2 = alpha * thresh_roi2.shape[1] - 1
 
-    analyse_stack1 = (np.sum(analyse_stack1, axis=1) / 255) >= 3
+    thresh_roi1[:, window_size1:thresh_roi1.shape[1] - 1 - window_size1] = 0
+    thresh_roi2[:, window_size2:thresh_roi2.shape[1] - 1 - window_size2] = 0
+
+    analyse_stack1 = thresh_roi1[:, 0:window_size1]
+    analyse_stack2 = thresh_roi2[:, 0:window_size2]
+    analyse_stack3 = thresh_roi1[:, thresh_roi1.shape[1] - window_size1:thresh_roi1.shape[1]]
+    analyse_stack4 = thresh_roi2[:, thresh_roi2.shape[1] - window_size2:thresh_roi2.shape[1]]
+
+    analyse_stack1 = (np.sum(analyse_stack1, axis=1) / 255) >= (0.3 * window_size1)
     a_s1_2 = np.roll(analyse_stack1, -1)
     a_s1_3 = np.roll(analyse_stack1, -2)
     stack1 = np.bitwise_and(analyse_stack1, a_s1_2)
     stack1 = np.bitwise_and(stack1, a_s1_3)
     stack1[-1] = True
-    val1 = np.argmax(stack1)
+    val1 = num_slices - np.argmax(np.flip(stack1[:-3], 0))
 
-    analyse_stack2 = (np.sum(analyse_stack2, axis=1) / 255) >= 3
+    analyse_stack2 = (np.sum(analyse_stack2, axis=1) / 255) >= (0.3 * window_size2)
     a_s2_2 = np.roll(analyse_stack2, -1)
     a_s2_3 = np.roll(analyse_stack2, -2)
     stack2 = np.bitwise_and(analyse_stack2, a_s2_2)
     stack2 = np.bitwise_and(stack2, a_s2_3)
     stack2[-1] = True
-    val2 = np.argmax(stack2)
+    val2 = num_slices - np.argmax(np.flip(stack2[:-3], 0))
 
-    analyse_stack3 = (np.sum(analyse_stack3, axis=1) / 255) >= 3
+    analyse_stack3 = (np.sum(analyse_stack3, axis=1) / 255) >= (0.3 * window_size1)
     a_s3_2 = np.roll(analyse_stack3, -1)
     a_s3_3 = np.roll(analyse_stack3, -2)
     stack3 = np.bitwise_and(analyse_stack3, a_s3_2)
     stack3 = np.bitwise_and(stack3, a_s3_3)
     stack3[-1] = True
-    val3 = np.argmax(stack3)
+    val3 = num_slices - np.argmax(np.flip(stack3[:-3], 0))
 
-    analyse_stack4 = (np.sum(analyse_stack4, axis=1) / 255) >= 3
+    analyse_stack4 = (np.sum(analyse_stack4, axis=1) / 255) >= (0.3 * window_size2)
     a_s4_2 = np.roll(analyse_stack4, -1)
     a_s4_3 = np.roll(analyse_stack4, -2)
     stack4 = np.bitwise_and(analyse_stack4, a_s4_2)
     stack4 = np.bitwise_and(stack4, a_s4_3)
     stack4[-1] = True
-    val4 = np.argmax(stack4)
+    val4 = num_slices - np.argmax(np.flip(stack4[:-3], 0))
 
-    z_level = min(val1, val2, val3, val4)
+    z_level = max(val1, val2, val3, val4)
 
     return lateral_cs1, lateral_cs2, z_level
 
