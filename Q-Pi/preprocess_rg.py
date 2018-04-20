@@ -167,7 +167,6 @@ def plot_data(contours, cnt2, mem_z, draw_flag):
 
         gc.collect()
 
-
     except IndexError:
         None
 
@@ -434,9 +433,4 @@ for cn in range(cell_num):
     print 'Percentage of cell under membrane: ', ((vol_under_mem / tot_vol) * 100)
     print
     print
-
-    del lateral_cs1
-    del lateral_cs2
-    del final_contours
-
     gc.collect()
