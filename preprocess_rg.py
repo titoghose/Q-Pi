@@ -81,7 +81,7 @@ def handle_opencv_mouse(event, x, y, flags, params):
 
     if event == cv2.EVENT_LBUTTONUP:
         fx, fy = x, y
-        cv2.rectangle(img_copy, (ix, iy), (fx, fy), rect_color[cell_num], 1)
+        cv2.rectangle(img_copy, (ix, iy), (fx, fy), rect_color[cell_num], 2)
 
 
 # function to handle matplotlib mouse press event
@@ -89,13 +89,17 @@ def handle_matplotlib_mouse(event):
     global membrane_z, mem_flag
     membrane_z = event.ydata
     mem_flag += 1
+    print membrane_z
 
 
 # function to plot meshgrid
 def plot_data(contours, cnt2, fname, mem_z, draw_flag):
-    global ix, iy
-
     ch = ConvexHull(contours)
+
+    xy_scale = 480. / img_dim
+
+    contours[ch.vertices, 0] = contours[ch.vertices, 0] * xy_scale
+    contours[ch.vertices, 1] = contours[ch.vertices, 1] * xy_scale
 
     max_x = np.max(contours[ch.vertices, 0], axis=0)
     max_y = np.max(contours[ch.vertices, 1], axis=0)
@@ -103,7 +107,8 @@ def plot_data(contours, cnt2, fname, mem_z, draw_flag):
 
     max_xy = max(max_x, max_y)
     scale_factor = max_xy / float(sys.argv[3])
-
+    scale_len = (2 / calib) * xy_scale
+    max_lim = max(int(max_x), int(max_y))
     print max_x, max_y, max_z
 
     if draw_flag is False:
@@ -123,12 +128,13 @@ def plot_data(contours, cnt2, fname, mem_z, draw_flag):
         print "plot above"
         try:
             if mem_z != -1:
-                max_lim = max(int(max_x), int(max_y))
+
                 xs = range(-int(max_lim / 6.), int(max_lim + max_lim / 6. + 1))
                 ys = range(-int(max_lim / 6.), int(max_lim + max_lim / 6. + 1))
                 X, Y = np.meshgrid(xs, ys)
                 Z1 = np.ones((len(ys), len(ys))) * (mem_z * scale_factor)
                 mlab.mesh(X, Y, Z1, color=(0.6, 0.6, 0.6), opacity=1.0)
+
             print "plot mesentery"
         except Exception, E:
             print str(E)
@@ -143,17 +149,33 @@ def plot_data(contours, cnt2, fname, mem_z, draw_flag):
                                           mode='point', color=(1, 0, 0), opacity=0.6)
         print "plot below"
 
-        scale_len = (2. * 480.) / (img_dim * 0.20716)
-
         scale_bar_x = np.array([int(max_lim + max_lim / 6. + 1), int(max_lim + max_lim / 6. + 1)])
         scale_bar_y = np.array([-int(max_lim / 6.), -int(max_lim / 6.) + scale_len])
         scale_bar_z = np.array([0, 0])
+        mlab.plot3d(scale_bar_x, scale_bar_y, scale_bar_z, color=(0, 0, 0), tube_radius=0.1)
+
+        # axes_x = np.array([-int(max_lim / 3.), -int(max_lim / 3.), -int(max_lim / 3.), -int(max_lim / 3.),
+        #                    -int(max_lim / 3.), int(max_lim + max_lim / 3. + 1)])
+        # axes_y = np.array([-int(max_lim / 3.), -int(max_lim / 3.), -int(max_lim / 3.), int(max_lim + max_lim / 3. + 1),
+        #                    -int(max_lim / 3.), -int(max_lim / 3.)])
+        # axes_z = np.array([0, num_stacks * scale_factor, 0, 0, 0, 0])
+        #
+        # mlab.plot3d(axes_x, axes_y, axes_z, color=(0.5, 0.5, 0.5), tube_radius=0.1)
+        # mlab.text3d(-int(max_lim / 3.)-3, -int(max_lim / 3.)-3, 0, "O")
+        # mlab.text3d(int(max_lim + max_lim / 3. + 1), -int(max_lim / 3.), 0, str(int(max_lim + max_lim / 3. + 1)))
+        # mlab.text3d(-int(max_lim / 3.), int(max_lim + max_lim / 3. + 1), 0, str(int(max_lim + max_lim / 3. + 1)))
+        # mlab.text3d(-int(max_lim / 3.)-3, -int(max_lim / 3.)-3, num_stacks * scale_factor, str(num_stacks))
+        # if mem_z != -1:
+        #     mlab.text3d(-int(max_lim / 3.)-3, -int(max_lim / 3.)-3, mem_z * scale_factor, str(mem_z))
+        # scale_len = 2 / calib
+
+        # scale_bar_x = np.array([int(max_lim + max_lim / 6. + 1), int(max_lim + max_lim / 6. + 1)])
+        # scale_bar_y = np.array([-int(max_lim / 6.), -int(max_lim / 6.) + scale_len])
+        # scale_bar_z = np.array([0, 0])
 
         print "Scale Len: ", scale_len
 
-        mlab.plot3d(scale_bar_x, scale_bar_y, scale_bar_z, color=(0, 0, 0), tube_radius=0.1)
-
-        mlab.savefig(fname.split('.')[0] + '.eps')
+        # mlab.savefig(fname.split('.')[0] + '.eps')
         mlab.show()
     except IndexError:
         None
@@ -166,6 +188,7 @@ def plot_data(contours, cnt2, fname, mem_z, draw_flag):
 mid_file_name = mDir + '/c2/'
 slices = sorted(os.listdir(mDir + '/c2/'), key=lambda z: (int(re.sub('\D', '', z)), z))
 TargetInd = int((int(sys.argv[3]) - int(sys.argv[2])) * 0.5) + int(sys.argv[2])
+TargetInd = 67
 print "Target Index: ", TargetInd
 for ind, i in enumerate(slices):
     if ind == TargetInd:
@@ -182,8 +205,8 @@ img = cv2.imread(mid_file_name)
 img_dim = img.shape[1]
 
 # setting up image:microscope scale variables
-x_factor = img_dim * calib
-y_factor = img_dim * calib
+x_factor = calib
+y_factor = calib
 z_factor = 0.2
 
 # Loop handling drawing of bounding boxes
@@ -201,6 +224,8 @@ while True:
         cell_coords_y.append((iy, fy))
         next_cell_flag = True
         cell_num += 1
+
+cv2.imwrite('roi.png', img_copy)
 
 print cell_coords_x
 print cell_coords_y
@@ -246,37 +271,42 @@ for cn in range(cell_num):
         if i.startswith('.') or i.endswith('.npy') or ind < int(sys.argv[2]) or ind > int(sys.argv[3]):
             continue
         img_nocrop = cv2.imread(mDir + '/c2/' + i)
-        img = img_nocrop[iy:fy, ix:fx, 0]
-        cropped_img = img
+        img = img_nocrop[682:776, 86:174, 0]
+        img = img_nocrop[iy:fy, ix:fx   , 0]
 
-        img = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel=cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)))
-        img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel=cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)))
-        openclose_img = img
+
+        cropped_img = img
+        cv2.imwrite(contourLines_dir + '/cropped_img_' + i, cv2.resize(cropped_img, (0, 0), fx=3.0, fy=3.0))
+
+        img = cv2.bilateralFilter(img, 5, 75, 75)
+        # img = cv2.GaussianBlur(img, (7, 7), 0)
+        # img = cv2.medianBlur(img, 7)
+        filtered_img = img
+        cv2.imwrite(contourLines_dir + '/bilateral_' + i, cv2.resize(filtered_img, (0, 0), fx=3.0, fy=3.0))
 
         img = cv2.equalizeHist(img)
-        img = cv2.erode(img, kernel=cv2.getStructuringElement(cv2.MORPH_ERODE, ksize=(2, 2)), iterations=3)
         equ_img = img
+        cv2.imwrite(contourLines_dir + '/histeq_' + i, cv2.resize(equ_img, (0, 0), fx=3.0, fy=3.0))
 
-        img = cv2.bilateralFilter(img, 5, 50, 50)
-        ret, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        # equ = cv2.GaussianBlur(equ, (3, 3), 0
+        # plt.hist(equ.ravel(), 256, [0, 256])
+        # plt.show()
+
+        ret2, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         thresh_img = img
+        cv2.imwrite(contourLines_dir + '/thresh_' + i, cv2.resize(thresh_img, (0, 0), fx=3.0, fy=3.0))
 
-        img = cv2.morphologyEx(img, op=cv2.MORPH_OPEN, kernel=cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2)),
-                               iterations=3)
-        img = cv2.dilate(img, kernel=cv2.getStructuringElement(cv2.MORPH_RECT, (2, 4)))
-        img = cv2.dilate(img, kernel=cv2.getStructuringElement(cv2.MORPH_RECT, (4, 2)))
-        dilate_img = img
+        k1 = np.ones((3, 3))
+        img = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel=k1)
+        open_img = img
+        cv2.imwrite(contourLines_dir + '/open_' + i, cv2.resize(open_img, (0, 0), fx=3.0, fy=3.0))
 
-        im_floodfill = img.copy()
-        h, w = img.shape[:2]
-        mask = np.zeros((h + 2, w + 2), np.uint8)
-        cv2.floodFill(im_floodfill, mask, (0, 0), 255)
-        im_floodfill_inv = cv2.bitwise_not(im_floodfill)
-        img = img | im_floodfill_inv
-        floodfill_img = img
+        img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel=k1)
+        close_img = img
+        cv2.imwrite(contourLines_dir + '/close_' + i, cv2.resize(close_img, (0, 0), fx=3.0, fy=3.0))
 
+        # finding contours (array of 2d coordinates) of cell
         _, contours, hierarchy = cv2.findContours(img, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_TC89_L1)
-        contours = np.array(contours)
 
         # initializing array to store new contours after filtering out ones with too less area i.e noise
         new_contours = np.array([])
@@ -299,12 +329,14 @@ for cn in range(cell_num):
                 max_ind = x
                 min_dist = dist_from_roi_centre
 
+        print ind, i, max_area
+
         # removing extra dimensions from countour array
         if len(contours) != 0 and max_ind != -1:
             img_temp = np.zeros((img.shape[0], img.shape[1], 3), dtype='uint8')
             new_contours = np.squeeze(np.array(contours[max_ind]))
-            img_cont = cv2.drawContours(img_temp, [new_contours], -1, (255, 255, 255), 1)
-            cv2.imwrite(contourLines_dir + '/contour_' + i, img_cont)
+            img_cont = cv2.drawContours(cv2.cvtColor(cropped_img, cv2.COLOR_GRAY2BGR), [new_contours], -1, (0, 255, 0), 1)
+            cv2.imwrite(contourLines_dir + '/contour_' + i, cv2.resize(img_cont, (0, 0), fx=3.0, fy=3.0))
 
         # fitting the closest ellipse (approximation) to the contours in order to take care of cell boundaries that might
         # not have been picked up
@@ -318,27 +350,27 @@ for cn in range(cell_num):
 
             _, contours, hierarchy = cv2.findContours(img, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_SIMPLE)
             img_temp = np.zeros((img.shape[0], img.shape[1], 3), dtype='uint8')
-            ellipse_img = cv2.drawContours(img_temp, contours, 0, (255, 255, 255), 1)
+            ellipse_img = cv2.drawContours(img_temp, contours, 0, (0, 0, 255), 1)
 
             ellipse_area = cv2.contourArea(contours[0])
 
-            cv2.imwrite(contourLines_dir + '/ellipse_' + i, ellipse_img)
+            cv2.imwrite(contourLines_dir + '/ellipse_' + i, cv2.resize(ellipse_img, (0, 0), fx=3.0, fy=3.0))
 
             new_contours = np.squeeze(np.array(contours))
 
-        if len(new_contours) != 0:
-            new_contours = np.insert(new_contours, 2, (ind + 1), axis=1)
-            prev_contour = new_contours
-            if final_contours.shape[0] == 0:
-                final_contours = new_contours
-            else:
-                final_contours = np.vstack((final_contours, new_contours))
+            if len(new_contours) != 0:
+                new_contours = np.insert(new_contours, 2, (ind + 1), axis=1)
+                prev_contour = new_contours
+                if final_contours.shape[0] == 0:
+                    final_contours = new_contours
+                else:
+                    final_contours = np.vstack((final_contours, new_contours))
 
-        elif prev_contour is not None:
-            if final_contours.shape[0] == 0:
-                final_contours = new_contours
-            else:
-                final_contours = np.vstack((final_contours, new_contours))
+        # elif prev_contour is not None:
+        #     if final_contours.shape[0] == 0:
+        #         final_contours = new_contours
+        #     else:
+        #         final_contours = np.vstack((final_contours, new_contours))
 
     # fitting convex hull on points forming final_contours
     conv_hull_full = plot_data(final_contours, None, cell_dir + '/reconstructed_' + str(ix) + '_' + str(iy) + '.png',
@@ -364,9 +396,9 @@ for cn in range(cell_num):
     fig.canvas.mpl_connect('button_press_event', handle_matplotlib_mouse)
 
     plt.imshow(np.hstack((lateral_cs1, lateral_cs2)), cmap='gray')
-    plt.axvline(cy, c='red')
-    plt.axvline(img_dim + cx, c='red')
-    plt.axhline(z_level, c='green')
+    plt.axvline(cy, c='xkcd:red', lw=2.0)
+    plt.axvline(img_dim + cx, c='xkcd:red', lw=2.0)
+    plt.axhline(z_level, c='xkcd:bright yellow', lw=1.5)
     plt.show()
 
     if mem_flag != -1:
@@ -396,11 +428,14 @@ for cn in range(cell_num):
 
     # applying Convex Hull to new set of points under membrane
     try:
-        conv_hull_under_mem = plot_data(fc, fc2, cell_dir + '/underMem_' + str(ix) + '_' + str(iy) + '.png',
-                                        membrane_z, False)
+        conv_hull_full = plot_data(final_contours, None,
+                                   cell_dir + '/reconstructed_' + str(ix) + '_' + str(iy) + '.png',
+                                   -1, True)
         conv_hull_full = plot_data(final_contours, None,
                                    cell_dir + '/reconstructed_' + str(ix) + '_' + str(iy) + '.png',
                                    membrane_z, True)
+        conv_hull_under_mem = plot_data(fc, fc2, cell_dir + '/underMem_' + str(ix) + '_' + str(iy) + '.png',
+                                        membrane_z, False)
 
         # Calculating volume (quantitative) data
         tot_vol = conv_hull_full.volume * x_factor * y_factor * z_factor
