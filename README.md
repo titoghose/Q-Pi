@@ -34,7 +34,7 @@ Download and install it following the instructions.
 #### 2. Download and install dependency libraries
 Next, execute the following commands on a terminal at the main Q-Pi folder. It runs a shell script that installs all the required dependencies.
 
-**Note**: sudo rights needed
+**Note**: command-line tools are needed on OSX. Download and install XCode command-line tools if not present.
 
 ```
 - chmod +x setup.sh
