@@ -8,7 +8,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Prerequisites
 
-What things you need to install the software and how to install them
+These are the prerequisites for running this program.
 
 ```
 Python 2.7.*
@@ -27,21 +27,21 @@ A step by step series of examples that tell you have to get a development env ru
 
 #### 1. Download and install Python 2.7.* 
 	
-	By default, OSX and Linux come installed with Python. In case it is not present in the system, it can be found [here](https://www.python.org/downloads/release/python-2714/).
-	Download and install it following the instructions.
+By default, OSX and Linux come installed with Python. In case it is not present in the system, it can be found [here](https://www.python.org/downloads/release/python-2714/).
+Download and install it following the instructions.
 
 #### 2. Download and install dependency libraries
-	Next, execute the following commands on a terminal at the main Q-Pi folder. It runs a shell script that installs all the required dependencies.
-	**Note**: sudo rights needed
+Next, execute the following commands on a terminal at the main Q-Pi folder. It runs a shell script that installs all the required dependencies.
+**Note**: sudo rights needed
 
-	```
-	- chmod +x setup.sh
-	- ./setup.sh
-	```
+```
+- chmod +x setup.sh
+- ./setup.sh
+```
 
 ## Running the tests
 
-	In order to test the program, place your .ND2 data file in a folder called *Data* inside the main folder.
+In order to test the program, place your .ND2 data file in a folder called *Data* inside the main folder.
 
 ### Break down into end to end tests
 
