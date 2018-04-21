@@ -45,13 +45,15 @@ Next, execute the following commands on a terminal at the main Q-Pi folder. It r
 
 ### Running the program
 
-In order to test the program, place your .ND2 data file in a folder called *Data* inside the main folder. 
+In order to test the program, clone or download this repository to your system. Place your .nd2 data file in a folder called *Data* inside the main folder. 
 
 Now to run the code, open a terminal at the main folder and execute the following.
 
 ```
-python qpi.py [Data/file_name.nd2]
+python qpi.py [file_name]
 ```
+
+*file_name* must be the full path to the location of the data file. All intermediate outputs will be saved in a folder with the name *Data_file_name*.
 
 A few advanced options are provided:
 
@@ -60,10 +62,10 @@ python qpi.py [Data/file_name.nd2] -lb [LB] -ub [UB] -p -w [WIN]
 ```
 
 These are optional arguments and mean the following:
-	- -lb : Lower bound of the z slices where the cell is expected to start from.
-	- -ub : Upper bound of the z slices where the cell is expected to end.
-	- -p : Plot the cell. If not mentioned, the cell will not be plot, only quantification will be done.
-	- -w : Window size to analyse and auto predict membrane level. If no bleed through exists, do not mention this option. In case of 	bleed through in experiment, recommended value is 0.25 .
++ -lb : Lower bound of the z slices where the cell is expected to start from.
++ -ub : Upper bound of the z slices where the cell is expected to end.
++ -p : Plot the cell. If not mentioned, the cell will not be plot, only quantification will be done.
++ -w : Window size to analyse and auto predict membrane level. If no bleed through exists, do not mention this option. In case of 	bleed through in experiment, recommended value is 0.25 .
 
 This is an example of how to use these options:
 
@@ -81,10 +83,15 @@ python qpi.py --help
 ### Sequence of Events
 
 1. Wait till the files are extracted and an image is displayed on the screen. The window can be resized to own convenience.
+
 2. Using your mouse, draw the bounding boxes around the cells you wish to analyse. Keep a small margin between the cell and the bounding box. You can draw upto 15 boxes. When happy with a box, press the key **n** on your keyboard to draw the next box. Once done drawing, press the key **x** to submit the selections.
+
 3. The program will sequentially analyse each cell. Look at the terminal for intermediate output information. 
+
 4. The lateral cross section of the ZX and ZY planes of the Z-Stack will pop up with the auto selected membrane level. If not satisfied with the selection, you can manually use your mouse to select the correct level. The image can be zoomed into for a clearer view. Every click is recorded and the subsequent membrane level is displayed on the terminal. Close the window to finalise selection.
+
 5. If plot option was selected then wait for cell to be plot without membrane first and then with the membrane at the correct level.
+
 6. Final percentage invsasion will be displayed on terminal after shutting the plots.
 
 ## Built With
