@@ -11,6 +11,9 @@ from mayavi import mlab
 from pims import ND2_Reader
 import matplotlib.pyplot as plt
 from scipy.spatial import ConvexHull
+import javabridge as jb
+import bioformats as bf
+from xml.etree import ElementTree as ETree
 
 from zstack_formation import create_z_stack
 
@@ -20,10 +23,12 @@ parser.add_argument("-lb", "--lowerbound", help="specify z slice where cell star
 parser.add_argument("-ub", "--upperbound", help="specify z slice where cell ends", type=int)
 parser.add_argument("-p", "--plot", help="option to plot the 3D reconstructed cell", action="store_true")
 parser.add_argument("-w", "--window",
-                    help="fraction of width to consider while auto picking membrane (eg. 1 is 100 percent or 0.5 is 50 percent )", type=float,
+                    help="fraction of width to consider while auto picking membrane (eg. 1 is 100 percent or 0.5 is 50 percent )",
+                    type=float,
                     default=1)
 args = parser.parse_args()
 
+img_dim = 0
 calib = 0
 num_stacks = 0
 ix, iy, fx, fy = 0, 0, 0, 0
@@ -37,10 +42,6 @@ rect_color = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255
 cell_coords_x = []
 cell_coords_y = []
 mem_flag = -1
-
-file_name = args.file_name
-fn = file_name.split('.')[0]
-mDir = fn + '_Data'
 
 
 # function to extract images to png format
@@ -72,6 +73,48 @@ def extract_from_ND2(file_name, c):
 
     except OSError:
         None
+
+
+def extract_img(file_name, ch):
+
+
+    meta = bf.get_omexml_metadata(path=file_name)
+    meta = meta.encode('ascii', 'ignore')
+    mdroot = ETree.fromstring(meta)
+
+    calib = 0
+    img_dim = 0
+    num_stacks = 0
+
+    for m in mdroot:
+        for l in m:
+            if l.tag.endswith("Pixels"):
+                calib = float(l.attrib['PhysicalSizeY'])
+                img_dim = int(l.attrib['SizeX'])
+                num_stacks = int(l.attrib['SizeZ'])
+
+    ir = bf.ImageReader(path=file_name)
+
+    os.system("clear")
+
+    f = ''
+    if ch == 1:
+        f = mDir + '/c1/'
+    else:
+        f = mDir + '/c2/'
+
+    try:
+        os.mkdir(f)
+        print "Extracting into for:", f
+        for j in range(num_stacks):
+            fn1 = file_name.split('.')
+            img1 = ir.read(c=ch-1, z=j, rescale=False)
+            plt.imsave(f + str(j) + '_' + fn1[0].split('/')[1] + '.png', img1, cmap='gray')
+            print("Progress: [%f]" % ((100.0 * j) / num_stacks))
+    except OSError:
+        print "Found slices at:", f
+
+    return img_dim, calib, num_stacks
 
 
 # function handling drawing of bounding box for selected cell
@@ -179,13 +222,21 @@ def plot_data(contours, cnt2, mem_z, draw_flag):
     return ch
 
 
+jb.start_vm(class_path=bf.JARS)
+file_name = args.file_name
+fn = file_name.split('.')[0]
+mDir = fn + '_Data'
+
 # Create directory to store extracted images
 try:
     os.mkdir(mDir + '/')
 except OSError:
     None
-extract_from_ND2(file_name, 1)
-extract_from_ND2(file_name, 2)
+# extract_from_ND2(file_name, 1)
+# extract_from_ND2(file_name, 2)
+img_dim, calib, num_stacks = extract_img(file_name, 1)
+extract_img(file_name, 2)
+jb.kill_vm()
 
 if args.lowerbound is not None:
     lower_bound = args.lowerbound
