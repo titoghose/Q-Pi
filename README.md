@@ -1,4 +1,5 @@
 
+
 ## Q-Pi
 
 Q-Pi is an algorithm designed for enhanced visualisation and high-throughput quantification of percentage invasion.
@@ -7,9 +8,15 @@ Q-Pi is an algorithm designed for enhanced visualisation and high-throughput qua
 
 These instructions will get you a copy of the project up and running on your local machine. See 'deployment' for notes on how to deploy the project on a live system. Currently, Q-Pi is supported **only on *OSX* and *Linux*** systems. Due to some conflicts with installation of the dependencies, *Windows* support is currently not available but will be provided soon.
 
+### Input file
+This programme supports various input formats. The input file is expected to be a z-stack containing two channels - membrane and channel respectively, where channel 1 is the membrane, and channel 2 is the cell. Input file format is any microscopy image format supported by python-bioformats and can be checked [here](https://docs.openmicroscopy.org/bio-formats/5.8.1/supported-formats.html).
+
+### Sample Data
+A test file generated from NIKON _NIS Elements_ suite can be found [here](https://drive.google.com/open?id=1--SQ_OiZU9fH9Ob6OwfODR9Rdu5TCs_f). 
+
 ### Dependencies
 
-These are the dependencies needed for running this program and installation instructions given below.
+These are the dependencies needed for running this programme and installation instructions given below.
 
 ```
 Python 2.7.*
@@ -25,15 +32,17 @@ mayavi
 
 ### Installing
 
-Follow these steps to get your system ready to use the program.
+Follow these steps to get your system ready to use the programme.
 
 #### 1. Download and install Python 2.7.*
 
-By default, OSX and Linux come installed with Python. In case it is not present in the system, it can be found [here](https://www.python.org/downloads/release/python-2714/).
+By default, OSX and Linux come installed with Python. Running the following code in a terminal window will reveal if installed, and which version.
+```
+python
+```
+In case it is not present in the system, it can be found [here](https://www.python.org/downloads/release/python-2714/). Download and install it following the instructions at the given link.
 
-Download and install it following the instructions at the given link.
-
-#### 2. Download and install dependency libraries
+#### 2. Download and install dependency libraries (see '1.' for Mac OSX and skip to '2.' for Linux)
 
 1. Steps to follow for ***Mac OSX*** users
 
@@ -54,7 +63,8 @@ Open a terminal window at, or change directory to, the Q-Pi folder. Then, run th
 - sudo pip install pims_nd2
 ```
 
-To install **python-bioformats**, requires Java to be present on the system. Java should be pre-installed on OSX. So just the following command should install the library:
+Installation of **python-bioformats** requires Java to be present on the system. Java should normally be pre-installed on OSX. So just the following command should install the library:
+
 ```
 - sudo pip install python-bioformats
 ```
@@ -111,7 +121,7 @@ To install **mayavi**, execute these commands on a terminal window:
 
 ### Running the programme
 
-In order to test the programmeme, clone or download this repository to your system. Place your .nd2, .lif or .czi data file in a folder called *Data* inside the main folder.
+In order to test the programme, clone or download this repository to your system. Place your data file in a folder called *Data* inside the main folder.
 
 Now to run the code, open a terminal at the main folder and execute the following.
 
@@ -121,7 +131,7 @@ python qpi.py [file_name]
 
 *file_name* must be the full path to the location of the data file. All intermediate outputs will be saved in a folder with the name *Data_file_name*.
 
-A few advanced options are provided:
+A few advanced optional user-based modifications are available:
 
 ```
 python qpi.py [Data/file_name.nd2] -lb [LB] -ub [UB] -p -w [WIN]
@@ -133,10 +143,10 @@ These are optional arguments and mean the following:
 + -p : Plot the cell. If not mentioned, the cell will not be plotted, only quantification will be done.
 + -w : Window size for membrane level selection. In case of	bleed-through in membrane channel, we recommend this option. Recommended value is 0.25. If no bleed-through exists, do not mention this option and the programme should automatically select the membrane level.
 
-This is an example of how to use these options:
+Below is an example of how to use these options, in this case, specific to the sample data provided above:
 
 ```
-python qpi.py [Data/file_name.nd2] -lb 10 -ub 80 -p -w 0.25
+python qpi.py [Data/file_name.nd2] -lb 23 -ub 116 -p -w 0.25
 ```
 
 The following command can be used to get help with these options while running the programme:
@@ -150,19 +160,15 @@ python qpi.py --help
 
 1. Wait till the files are extracted and an image is displayed on the screen. The window can be resized to own convenience.
 
-2. Using your mouse, draw the bounding boxes around the cells you wish to analyse. Keep a small margin between the cell and the bounding box. You can draw upto 15 boxes. When happy with a box, press the key **n** on your keyboard to draw the next box. Once done drawing, press the key **x** to submit the selections.
+2. Using your mouse, draw the bounding boxes (ROI) around the cells you wish to analyse. Keep a small margin between the cell and the ROI. You can draw upto 15 ROIs. When happy with an ROI, press the key **n** on your keyboard to draw the next box. Once done drawing, press the key **x** to submit the selections.
 
-3. The programme will sequentially analyse each cell. Look at the terminal for intermediate output information.
+3. The programme will sequentially analyse each cell. See terminal for intermediate output information.
 
 4. The lateral cross section of the ZX and ZY planes of the Z-Stack will pop up with the auto selected membrane level. If not satisfied with the selection, you can manually use your mouse to select the correct level. The image can be zoomed into for a clearer view. Every click is recorded and the subsequent membrane level is displayed on the terminal. Close the window to finalise selection.
 
-5. If plot option was selected then wait for cell to be plot without membrane first and then with the membrane at the correct level.
+5. If plot option was selected then wait for cell to be plotted without membrane first and then with the membrane at the correct level.
 
 6. Final percentage invsasion will be displayed on terminal after shutting the plots.
-
-## Sample Data
-
-A sample .nd2 file can be found [here](link) and used to test the program.
 
 ## Built With
 
@@ -170,10 +176,7 @@ A sample .nd2 file can be found [here](link) and used to test the program.
 * [Mayavi](http://docs.enthought.com/mayavi/mayavi/) - 3D Plotting Library
 * [Python-Bioformats](https://pythonhosted.org/python-bioformats/) - Used to extract raw microscope images to .png format
 
-## License
+## Citing the programme
 
-This project is licensed under the ??? License - see the [LICENSE.md](LICENSE.md) file for details
+Please use the following DOI: _'pending'_, and cite the following publication: _'pending'_
 
-## Citation
-
-In order to cite this code please use the following DOI :
