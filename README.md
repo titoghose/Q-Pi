@@ -38,7 +38,7 @@ Follow these steps to get your system ready to use the programme.
 
 By default, OSX and Linux come installed with Python. Running the following code in a terminal window will reveal if installed, and which version.
 ```
-python
+python --version
 ```
 In case it is not present in the system, it can be found [here](https://www.python.org/downloads/release/python-2714/). Download and install it following the instructions at the given link.
 
