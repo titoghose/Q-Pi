@@ -1,3 +1,4 @@
+
 ## Q-Pi
 
 Q-Pi is an algorithm designed for enhanced visualisation and high-throughput quantification of percentage invasion.
@@ -8,7 +9,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Dependencies
 
-These are the prerequisites for running this programme and installation instructions given below.
+These are the dependencies needed for running this program and installation instructions given below.
 
 ```
 Python 2.7.*
@@ -34,43 +35,31 @@ Download and install it following the instructions at the given link.
 
 #### 2. Download and install dependency libraries
 
-1. To install dependencies other than mayavi and python-bioformats 
+1. Steps to follow for ***Mac OSX*** users
 
 Open a terminal window at, or change directory to, the Q-Pi folder. Then, run the below mentioned code. It runs a shell script that installs all the required dependencies. This will install the following dependncies:
 + numpy
 + scipy
 + matplotlib
-+ pims_nd2
 + opencv
-
-**Note**: OSX users will be required to additionally download and install XCode if not already present; in most cases your system should automatically prompt you, if required.
++ pims_nd2
++ python-bioformats
 
 ```
-- chmod +x setup.sh
-- ./setup.sh
+- sudo easy_install pip
+- sudo pip install numpy
+- sudo pip install scipy
+- sudo pip install matplotlib
+- sudo pip install opencv-python==3.3.0.10
+- sudo pip install pims_nd2
 ```
 
-2. To install **python-bioformats**
-
-It requires Java to be present on the system. 
-
-In case of *Mac OSX* execute these commands on a terminal window:
+To install **python-bioformats**, requires Java to be present on the system. Java should be pre-installed on OSX. So just the following command should install the library:
 ```
-pip install python-bioformats
+- sudo pip install python-bioformats
 ```
 
-In case of *Linux* systems execute these commands on a terminal window
-**Note:**The Java distribution should be of OpenJDK. 
-```
-apt-get install openjdk-8-jdk
-pip install python-bioformats
-```
-
-If there is an issue with building javabridge just make sure your Java installation is correct.
-
-3. To install **mayavi**
-
-In case of *Mac OSX* execute these commands on a terminal window:
+To install **mayavi**, execute these commands on a terminal window:
 ```
 - pip install vtk
 - pip install envisage
@@ -78,7 +67,37 @@ In case of *Mac OSX* execute these commands on a terminal window:
 - pip install mayavi
 ```
 
-In case of *Linux* systems execute these commands on a terminal window:
+**Note**: OSX users will be required to additionally download and install XCode if not already present; in most cases your system should automatically prompt you, if required.
+
+2. Steps to follow for ***Linux*** users
+Open a terminal window at, or change directory to, the Q-Pi folder. Then, run the below mentioned code. It runs a shell script that installs all the required dependencies. This will install the following dependncies:
++ numpy
++ scipy
++ matplotlib
++ opencv
++ pims_nd2
++ python-bioformats
+
+```
+- sudo apt-get update
+- sudo apt-get install python-setuptools python-dev build-essential
+- sudo easy_install pip
+- sudo pip install numpy
+- sudo pip install scipy
+- sudo pip install matplotlib
+- sudo pip install opencv-python==3.3.0.10
+- sudo pip install pims_nd2
+```
+
+To install **python-bioformats**, requires OpenJDK Java distribution to be present on the system. Other distributions will cause linking errors with this library. Execute the following:
+
+```
+apt-get install openjdk-8-jdk
+pip install python-bioformats
+```
+
+To install **mayavi**, execute these commands on a terminal window:
+
 ```
 - pip install vtk
 - apt-get update
