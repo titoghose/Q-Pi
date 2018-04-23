@@ -12,7 +12,7 @@ These instructions will get you a copy of the project up and running on your loc
 This programme supports various input formats. The input file is expected to be a z-stack containing two channels - membrane and channel respectively, where channel 1 is the membrane, and channel 2 is the cell. Input file format is any microscopy image format supported by python-bioformats and can be checked [here](https://docs.openmicroscopy.org/bio-formats/5.8.1/supported-formats.html).
 
 ### Sample Data
-A test file generated from NIKON _NIS Elements_ suite can be found [here](https://drive.google.com/open?id=1--SQ_OiZU9fH9Ob6OwfODR9Rdu5TCs_f). 
+A test file generated from NIKON _NIS Elements_ suite can be found [here](https://drive.google.com/open?id=1gOiaWUg2N2UykjDx7SlsUPJbPXuDzl1f). 
 
 ### Dependencies
 
