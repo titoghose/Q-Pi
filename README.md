@@ -63,7 +63,7 @@ Open a terminal window at, or change directory to, the Q-Pi folder. Then, run th
 - sudo pip install pims_nd2
 ```
 
-Installation of **python-bioformats** requires Java to be present on the system. Java should normally be pre-installed on OSX. So just the following command should install the library:
+Installation of **python-bioformats** requires Java to be present on the system. Java should normally be pre-installed on Mac OS 10.6.* and below. For those using OS 10.7.* and above will need to install the [Java Development Kit (JDK)](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html) manually. So just the following command should install the library:
 
 ```
 - sudo pip install python-bioformats
@@ -71,10 +71,10 @@ Installation of **python-bioformats** requires Java to be present on the system.
 
 To install **mayavi**, execute these commands on a terminal window:
 ```
-- pip install vtk
-- pip install envisage
-- pip install -U wxPython
-- pip install mayavi
+- sudo pip install vtk
+- sudo pip install envisage
+- sudo pip install -U wxPython
+- sudo pip install mayavi
 ```
 
 **Note**: OSX users will be required to additionally download and install XCode if not already present; in most cases your system should automatically prompt you, if required.
@@ -134,7 +134,7 @@ python qpi.py [file_name]
 A few advanced optional user-based modifications are available:
 
 ```
-python qpi.py [Data/file_name.nd2] -lb [LB] -ub [UB] -p -w [WIN]
+pythonw qpi.py [Data/file_name.nd2] -lb [LB] -ub [UB] -p -w [WIN]
 ```
 
 These are optional arguments and mean the following:
@@ -146,13 +146,13 @@ These are optional arguments and mean the following:
 Below is an example of how to use these options, in this case, specific to the sample data provided above:
 
 ```
-python qpi.py [Data/file_name.nd2] -lb 23 -ub 116 -p -w 0.25
+pythonw qpi.py [Data/file_name.nd2] -lb 23 -ub 116 -p -w 0.25
 ```
 
 The following command can be used to get help with these options while running the programme:
 
 ```
-python qpi.py --help
+pythonw qpi.py --help
 ```
 
 
