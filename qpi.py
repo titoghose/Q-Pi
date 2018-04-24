@@ -175,7 +175,6 @@ def plot_data(contours, cnt2, mem_z, draw_flag):
     if args.plot:
 
         mlab.figure(1, bgcolor=(1, 1, 1), fgcolor=(0.5, 0.5, 0.5))
-
         # plotting new cell wiremesh below z = membrane
         for v in ch.simplices:
             s1 = mlab.plot3d(contours[v, 0], contours[v, 1], (contours[v, 2] * scale_factor), color=(0, 0, 1),
@@ -449,6 +448,13 @@ for cn in range(cell_num):
     # figure to show z stack and point out z = membrane
     fig = plt.figure()
     fig.canvas.mpl_connect('button_press_event', handle_matplotlib_mouse)
+
+    rep = 1
+    # if num_stacks < 80:
+    #     rep = 2
+
+    lateral_cs1 = np.repeat(lateral_cs1, rep, axis=0)
+    lateral_cs2 = np.repeat(lateral_cs2, rep, axis=0)
 
     plt.imshow(np.hstack((lateral_cs1, lateral_cs2)), cmap='gray')
     plt.axvline(cy, c='xkcd:red', lw=2.0)

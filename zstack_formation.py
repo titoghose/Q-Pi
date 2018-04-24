@@ -47,8 +47,8 @@ def create_z_stack(path, x1, x2, y1, y2, alpha=1):
     ret, thresh_roi1 = cv2.threshold(roi1, 0, 255, cv2.THRESH_OTSU + cv2.THRESH_BINARY)
     ret, thresh_roi2 = cv2.threshold(roi2, 0, 255, cv2.THRESH_OTSU + cv2.THRESH_BINARY)
 
-    window_size1 = alpha * thresh_roi1.shape[1] - 1
-    window_size2 = alpha * thresh_roi2.shape[1] - 1
+    window_size1 = int(alpha * thresh_roi1.shape[1] - 1)
+    window_size2 = int(alpha * thresh_roi2.shape[1] - 1)
 
     thresh_roi1[:, window_size1:thresh_roi1.shape[1] - 1 - window_size1] = 0
     thresh_roi2[:, window_size2:thresh_roi2.shape[1] - 1 - window_size2] = 0

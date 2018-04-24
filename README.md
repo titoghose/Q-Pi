@@ -1,5 +1,6 @@
 
 
+
 ## Q-Pi
 
 Q-Pi is an algorithm designed for enhanced visualisation and high-throughput quantification of percentage invasion.
@@ -38,37 +39,40 @@ Follow these steps to get your system ready to use the programme.
 
 By default, OSX and Linux come installed with Python. Running the following code in a terminal window will reveal if installed, and which version.
 ```
-python
+python --version
 ```
 In case it is not present in the system, it can be found [here](https://www.python.org/downloads/release/python-2714/). Download and install it following the instructions at the given link.
 
 #### 2. Download and install dependency libraries (see '1.' for Mac OSX and skip to '2.' for Linux)
 
 1. Steps to follow for ***Mac OSX*** users
-
-Open a terminal window at, or change directory to, the Q-Pi folder. Then, run the below mentioned code. It runs a shell script that installs all the required dependencies. This will install the following dependncies:
+---
+Open a terminal window at, or change directory to, the Q-Pi folder. Then, run the below mentioned code. This will install the following dependencies:
 + numpy
 + scipy
 + matplotlib
 + opencv
 + pims_nd2
-+ python-bioformats
 
 ```
-- sudo easy_install pip
-- sudo pip install numpy
-- sudo pip install scipy
-- sudo pip install matplotlib
-- sudo pip install opencv-python==3.3.0.10
-- sudo pip install pims_nd2
+- easy_install pip
+- pip install numpy
+- pip install scipy
+- pip install matplotlib
+- pip install opencv-python==3.3.0.10
+- pip install pims_nd2
 ```
 
-Installation of **python-bioformats** requires Java to be present on the system. Java should normally be pre-installed on OSX. So just the following command should install the library:
+Installation of **python-bioformats** requires Java  Development Kit (JDK) to be present on the system. Java should normally be pre-installed on OSX 10.6 and older versions. This is not the case for the versions after 10.6. Hence for this case, JDK can be installed from [here](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html). 
 
+To confirm the presence of JDK on your system the following command should print the version.
 ```
-- sudo pip install python-bioformats
+javac -version
 ```
-
+Once JDK is installed, run the following command on your terminal to get **python-bioformats**.
+```
+- pip install python-bioformats
+```
 To install **mayavi**, execute these commands on a terminal window:
 ```
 - pip install vtk
@@ -76,10 +80,12 @@ To install **mayavi**, execute these commands on a terminal window:
 - pip install -U wxPython
 - pip install mayavi
 ```
-
-**Note**: OSX users will be required to additionally download and install XCode if not already present; in most cases your system should automatically prompt you, if required.
+Mayavi requires wxPython, PyQt4 or PySide but we have opted to go with wxPython. After installation of wxPython, if PyQt is still present on the system, it may cause conflicts while importing **mayavi**. We recommend ensuring that PyQt is not installed on the system to prevent any issues.
+ 
+**Note**: OSX users will be required to additionally download and install XCode command line tools if not already present; in most cases your system should automatically prompt you, if required.
 
 2. Steps to follow for ***Linux*** users
+---
 Open a terminal window at, or change directory to, the Q-Pi folder. Then, run the below mentioned code. It runs a shell script that installs all the required dependencies. This will install the following dependncies:
 + numpy
 + scipy
@@ -89,17 +95,17 @@ Open a terminal window at, or change directory to, the Q-Pi folder. Then, run th
 + python-bioformats
 
 ```
-- sudo apt-get update
-- sudo apt-get install python-setuptools python-dev build-essential
-- sudo easy_install pip
-- sudo pip install numpy
-- sudo pip install scipy
-- sudo pip install matplotlib
-- sudo pip install opencv-python==3.3.0.10
-- sudo pip install pims_nd2
+- apt-get update
+- apt-get install python-setuptools python-dev build-essential
+- easy_install pip
+- pip install numpy
+- pip install scipy
+- pip install matplotlib
+- pip install opencv-python==3.3.0.10
+- pip install pims_nd2
 ```
 
-To install **python-bioformats**, requires OpenJDK Java distribution to be present on the system. Other distributions will cause linking errors with this library. Execute the following:
+To install **python-bioformats**, requires JDK provided by OpenJDK to be present on the system. Other distributions may cause errors while setting up this library. Execute the following:
 
 ```
 apt-get install openjdk-8-jdk
@@ -164,7 +170,7 @@ python qpi.py --help
 
 3. The programme will sequentially analyse each cell. See terminal for intermediate output information.
 
-4. The lateral cross section of the ZX and ZY planes of the Z-Stack will pop up with the auto selected membrane level. If not satisfied with the selection, you can manually use your mouse to select the correct level. The image can be zoomed into for a clearer view. Every click is recorded and the subsequent membrane level is displayed on the terminal. Close the window to finalise selection.
+4. The lateral cross section of the ZX and ZY planes of the Z-Stack will pop up with the auto selected membrane level. If not satisfied with the selection, you can manually use your mouse to select the correct level. The image can be zoomed into for a clearer view. We recommend zooming in because some files have very few slices and hence the stack appears very thin. Every click is recorded and the subsequent membrane level is displayed on the terminal. Close the window to finalise selection.
 
 5. If plot option was selected then wait for cell to be plotted without membrane first and then with the membrane at the correct level.
 
