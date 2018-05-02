@@ -157,6 +157,9 @@ The following command can be used to get help with these options while running t
 ```
 python qpi.py --help
 ```
+
+If running with the **python** command gives errors for those with Conda distributions of python, try the same commands with **pythonw**.
+
 **Note**: Due to involvement of 3D plotting and graphics functions, systems without good processing capabilities may take a little time to produce the plots. Systems with good graphics cards and processors will benefit and plotting times will be lower.
 
 ### Sequence of Events
@@ -178,8 +181,3 @@ python qpi.py --help
 * [OpenCV](https://opencv.org/) - Image Processing Library
 * [Mayavi](http://docs.enthought.com/mayavi/mayavi/) - 3D Plotting Library
 * [Python-Bioformats](https://pythonhosted.org/python-bioformats/) - Used to extract raw microscope images to .png format
-
-## Citing the programme
-
-Please use the following DOI: _'pending'_, and cite the following publication: _'pending'_
-
