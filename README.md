@@ -181,3 +181,7 @@ If running with the **python** command gives errors for those with Conda distrib
 * [OpenCV](https://opencv.org/) - Image Processing Library
 * [Mayavi](http://docs.enthought.com/mayavi/mayavi/) - 3D Plotting Library
 * [Python-Bioformats](https://pythonhosted.org/python-bioformats/) - Used to extract raw microscope images to .png format
+
+## Citation
+
+In order to access and cite this code, please use the following DOI: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1239826.svg)](https://doi.org/10.5281/zenodo.1239826)
