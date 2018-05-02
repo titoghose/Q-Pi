@@ -22,10 +22,10 @@ parser.add_argument("file_name", help="input .ND2 file")
 parser.add_argument("-lb", "--lowerbound", help="specify z slice where cell starts", type=int)
 parser.add_argument("-ub", "--upperbound", help="specify z slice where cell ends", type=int)
 parser.add_argument("-p", "--plot", help="option to plot the 3D reconstructed cell", action="store_true")
-parser.add_argument("-w", "--window",
-                    help="fraction of width to consider while auto picking membrane (eg. 1 is 100 percent or 0.5 is 50 percent )",
-                    type=float,
-                    default=1)
+# parser.add_argument("-w", "--window",
+#                     help="fraction of width to consider while auto picking membrane (eg. 1 is 100 percent or 0.5 is 50 percent )",
+#                     type=float,
+#                     default=1)
 args = parser.parse_args()
 
 img_dim = 0
@@ -76,8 +76,6 @@ def extract_from_ND2(file_name, c):
 
 
 def extract_img(file_name, ch):
-
-
     meta = bf.get_omexml_metadata(path=file_name)
     meta = meta.encode('ascii', 'ignore')
     mdroot = ETree.fromstring(meta)
@@ -108,7 +106,7 @@ def extract_img(file_name, ch):
         print "Extracting into for:", f
         for j in range(num_stacks):
             fn1 = file_name.split('.')
-            img1 = ir.read(c=ch-1, z=j, rescale=False)
+            img1 = ir.read(c=ch - 1, z=j, rescale=False)
             plt.imsave(f + str(j) + '_' + fn1[0].split('/')[1] + '.png', img1, cmap='gray')
             print("Progress: [%f]" % ((100.0 * j) / num_stacks))
     except OSError:
@@ -190,8 +188,8 @@ def plot_data(contours, cnt2, mem_z, draw_flag):
                 X, Y = np.meshgrid(xs, ys)
                 Z1 = np.ones((len(ys), len(ys))) * (mem_z * scale_factor)
                 mlab.mesh(X, Y, Z1, color=(0.6, 0.6, 0.6), opacity=1.0)
-
             print "plot mesentery"
+
         except Exception, E:
             print str(E)
 
@@ -438,7 +436,7 @@ for cn in range(cell_num):
     lateral_cs1 = None
     lateral_cs2 = None
     try:
-        lateral_cs1, lateral_cs2, z_level = create_z_stack(mDir + "/c1/", ix, fx, iy, fy, args.window)
+        lateral_cs1, lateral_cs2, z_level = create_z_stack(mDir + "/c1/", ix, fx, iy, fy)
         num_stacks = lateral_cs1.shape[0]
     except OSError:
         None
