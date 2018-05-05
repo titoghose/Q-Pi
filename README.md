@@ -115,8 +115,7 @@ To install **mayavi**, execute these commands on a terminal window:
 ```
 - pip install vtk
 - apt-get update
-- apt-get install python-qt4 python-qt4-gl python-setuptools python-c
-- easy_install EnvisageCore EnvisagePlugins
+- apt-get install python-qt4 python-qt4-gl
 - pip install envisage
 - pip install mayavi
 ```
