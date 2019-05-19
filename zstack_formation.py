@@ -32,7 +32,7 @@ def create_z_stack(path, x1, x2, y1, y2, alpha=1):
                     Z_stack = np.expand_dims(img, axis=0)
                 else:
                     Z_stack = np.vstack((Z_stack, np.expand_dims(img, axis=0)))
-            print "Progress: [%d%%]\r" % (((ind + 1) / (1.0 * num_slices)) * 100)
+            print("Progress: [%d%%]\r" % (((ind + 1) / (1.0 * num_slices)) * 100))
 
         np.save(path + '/0Z_STACK.npy', Z_stack, allow_pickle=True)
 
@@ -103,7 +103,7 @@ def create_z_stack(path, x1, x2, y1, y2, alpha=1):
 # except OSError:
 #     None
 #
-# print z_stack1.shape
+# print(z_stack1.shape)
 #
 # img = cv2.imread('/home/upamanyu/Documents/Rito/Q-Pi/Data/no_cells_lam_perl_Data/c2/37_home.png')
 # # img = cv2.imread('/home/upamanyu/Documents/Rito/Q-Pi/Data/ctrl001_Data/c2/44_ctrl001.png')
@@ -117,7 +117,7 @@ def create_z_stack(path, x1, x2, y1, y2, alpha=1):
 #     if k == ord('x'):
 #         break
 #
-# print fx, fy, ix, iy
+# print(fx, fy, ix, iy)
 #
 #
 # # creating the lateral slice of z stack

@@ -57,7 +57,7 @@ Open a terminal window at, or change directory to, the Q-Pi folder. Then, run th
 - pip install numpy
 - pip install scipy
 - pip install matplotlib
-- pip install opencv-python==3.3.0.10
+- pip install opencv-python>=3.3.0.0
 - pip install pims_nd2
 ```
 
@@ -84,7 +84,7 @@ Mayavi requires wxPython, PyQt4 or PySide but we have opted to go with wxPython.
 
 2. Steps to follow for ***Linux*** users
 ---
-Open a terminal window at, or change directory to, the Q-Pi folder. Then, run the below mentioned code. It runs a shell script that installs all the required dependencies. This will install the following dependncies:
+Open a terminal window at, or change directory to, the Q-Pi folder. Then, run the below mentioned code. This will install the following dependncies:
 + numpy
 + scipy
 + matplotlib
@@ -99,7 +99,7 @@ Open a terminal window at, or change directory to, the Q-Pi folder. Then, run th
 - pip install numpy
 - pip install scipy
 - pip install matplotlib
-- pip install opencv-python==3.3.0.10
+- pip install opencv-python>=3.3.0.0
 - pip install pims_nd2
 ```
 
@@ -119,6 +119,12 @@ To install **mayavi**, execute these commands on a terminal window:
 - pip install envisage
 - pip install mayavi
 ```
+
+3. Steps to follow for ***Windows*** users
+
+JDK 7 (https://www.oracle.com/technetwork/java/javase/downloads/java-archive-downloads-javase7-521261.html)
+Visual Studio C++ >=14 Build Tools (https://visualstudio.microsoft.com/visual-cpp-build-tools/)
+
 
 ## Using Q-Pi
 

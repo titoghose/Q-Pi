@@ -47,7 +47,7 @@ mem_flag = -1
 # function to extract images to png format
 def extract_from_ND2(file_name, c):
     global calib, num_stacks
-    print file_name
+    print(file_name)
     frames = ND2_Reader(file_name)
     calib = float(frames.metadata['calibration_um'])
 
@@ -64,10 +64,10 @@ def extract_from_ND2(file_name, c):
 
     try:
         os.mkdir(f)
-        print "Extracting Slices for ", f
+        print("Extracting Slices for ", f)
         for j, fr in enumerate(frames[0]):
             fn = file_name.split('.')
-            # print f + str(j) + '_' + fn[0].split('/')[1] + '.png'
+            # print(f + str(j) + '_' + fn[0].split('/')[1] + '.png')
             plt.imsave(f + str(j) + '_' + fn[0].split('/')[1] + '.png', fr, cmap='gray')
             print("Progress: [%f]" % ((100.0 * j) / num_slices))
 
@@ -103,14 +103,14 @@ def extract_img(file_name, ch):
 
     try:
         os.mkdir(f)
-        print "Extracting into for:", f
+        print("Extracting into for:", f)
         for j in range(num_stacks):
             fn1 = file_name.split('.')
             img1 = ir.read(c=ch - 1, z=j, rescale=False)
             plt.imsave(f + str(j) + '_' + fn1[0].split('/')[1] + '.png', img1, cmap='gray')
             print("Progress: [%f]" % ((100.0 * j) / num_stacks))
     except OSError:
-        print "Found slices at:", f
+        print("Found slices at:", f)
 
     return img_dim, calib, num_stacks
 
@@ -137,7 +137,7 @@ def handle_matplotlib_mouse(event):
     global membrane_z, mem_flag
     membrane_z = event.ydata
     mem_flag += 1
-    print membrane_z
+    print(membrane_z)
 
 
 # function to plot meshgrid
@@ -168,7 +168,7 @@ def plot_data(contours, cnt2, mem_z, draw_flag):
     scale_factor = max_xy / upper_bound
     scale_len = (2 / calib) * normalising_factor_y
     max_lim = max(int(max_x), int(max_y))
-    print "Scale Len: ", scale_len
+    print("Scale Len: ", scale_len)
 
     if args.plot:
 
@@ -179,7 +179,7 @@ def plot_data(contours, cnt2, mem_z, draw_flag):
                              tube_radius=0.3)
             s2 = mlab.points3d(contours[v, 0], contours[v, 1], (contours[v, 2] * scale_factor), color=(0, 0, 0),
                                scale_factor=0.5)
-        print "plot above"
+        print("plot above")
 
         try:
             if mem_z != -1:
@@ -188,10 +188,10 @@ def plot_data(contours, cnt2, mem_z, draw_flag):
                 X, Y = np.meshgrid(xs, ys)
                 Z1 = np.ones((len(ys), len(ys))) * (mem_z * scale_factor)
                 mlab.mesh(X, Y, Z1, color=(0.6, 0.6, 0.6), opacity=1.0)
-            print "plot mesentery"
+            print("plot mesentery")
 
-        except Exception, E:
-            print str(E)
+        except Exception as E:
+            print(str(E))
 
         if cnt2 is not None:
             ch2 = ConvexHull(cnt2)
@@ -201,7 +201,7 @@ def plot_data(contours, cnt2, mem_z, draw_flag):
                 s4 = mlab.plot3d(cnt2[v, 0], cnt2[v, 1], (cnt2[v, 2] * scale_factor), color=(0, 0, 0), tube_radius=0.05)
                 s5 = mlab.triangular_mesh(cnt2[v, 0], cnt2[v, 1], (cnt2[v, 2] * scale_factor), [(0, 1, 2)],
                                           mode='point', color=(1, 0, 0), opacity=0.6)
-        print "plot below"
+        print("plot below")
 
         scale_bar_x = np.array([int(max_lim + max_lim / 6. + 1), int(max_lim + max_lim / 6. + 1)])
         scale_bar_y = np.array([-int(max_lim / 6.), -int(max_lim / 6.) + scale_len])
@@ -249,14 +249,14 @@ else:
 mid_file_name = mDir + '/c2/'
 slices = sorted(os.listdir(mDir + '/c2/'), key=lambda z: (int(re.sub('\D', '', z)), z))
 TargetInd = int((upper_bound - lower_bound) * 0.5) + lower_bound
-print "Target Index: ", TargetInd
+print("Target Index: ", TargetInd)
 for ind, i in enumerate(slices):
     if ind == TargetInd:
         mid_file_name += i
         break
 
-print mid_file_name
-print "Microscope Calibration: ", calib
+print(mid_file_name)
+print("Microscope Calibration: ", calib)
 
 # initializing OpenCV window and drawing event handling
 cv2.namedWindow('Image', cv2.WINDOW_NORMAL)
@@ -285,7 +285,7 @@ while True:
         next_cell_flag = True
         cell_num += 1
         if cell_num == 15:
-            print "Reached max limit of cells (15)"
+            print("Reached max limit of cells (15)")
             break
 
 # Store selected cell ROIs with attached timestamp
@@ -301,7 +301,7 @@ cv2.waitKey(1)
 
 # loop to handle multiple cells
 for cn in range(cell_num):
-    print "CELL NUMBER: ", cn + 1
+    print("CELL NUMBER: ", cn + 1)
     iy = cell_coords_y[cn][0]
     fy = cell_coords_y[cn][1]
     ix = cell_coords_x[cn][0]
@@ -378,7 +378,7 @@ for cn in range(cell_num):
             if cont.shape[0] == 1:
                 c = np.expand_dims(c, 0)
             centre = [ix + np.mean(c[:, 0]), iy + np.mean(c[:, 1])]
-            # print("Centre of contour: (%3f, %3f)" % (centre[0], centre[1]))
+            # print("Centre of contour: (%3f, %3f)" % (centre[0], centre[1])))
 
             dist_from_roi_centre = (((roi_centre[0] - centre[0]) ** 2) + ((roi_centre[1] - centre[1]) ** 2)) ** .5
 
@@ -387,7 +387,7 @@ for cn in range(cell_num):
                 max_ind = x
                 min_dist = dist_from_roi_centre
 
-        # print ind, i, max_area
+        # print(ind, i, max_area)
 
         # removing extra dimensions from countour array
         if len(contours) != 0 and max_ind != -1:
@@ -441,7 +441,7 @@ for cn in range(cell_num):
     except OSError:
         None
 
-    print 'Membrane Z level selected: ', z_level
+    print('Membrane Z level selected: ', z_level)
 
     # figure to show z stack and point out z = membrane
     fig = plt.figure()
@@ -465,7 +465,7 @@ for cn in range(cell_num):
         membrane_z = int(round(membrane_z, 0))
     else:
         membrane_z = z_level
-    print 'Membrane Z is now: ', membrane_z
+    print('Membrane Z is now: ', membrane_z)
 
     # removing all cell contour points above the z = membrane
     fc = np.array([])
@@ -493,14 +493,14 @@ for cn in range(cell_num):
         vol_under_mem = conv_hull_under_mem.volume * x_factor * y_factor * z_factor
 
     # Exception in case the volume invasion is 0
-    except Exception, e:
-        print str(e)
+    except Exception as e:
+        print(str(e))
         tot_vol = conv_hull_full.volume * x_factor * y_factor * z_factor
         vol_under_mem = 0
 
-    print 'Total Volume: ', tot_vol
-    print 'Volume Under Membrane: ', vol_under_mem
-    print 'Percentage of cell under membrane: ', ((vol_under_mem / tot_vol) * 100)
-    print
-    print
+    print('Total Volume: ', tot_vol)
+    print('Volume Under Membrane: ', vol_under_mem)
+    print('Percentage of cell under membrane: ', ((vol_under_mem / tot_vol) * 100))
+    print()
+    print()
     gc.collect()
