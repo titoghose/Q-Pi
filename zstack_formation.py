@@ -37,8 +37,8 @@ def create_z_stack(path, x1, x2, y1, y2, alpha=1):
         np.save(path + '/0Z_STACK.npy', Z_stack, allow_pickle=True)
 
     num_slices = Z_stack.shape[0]
-    lateral_cs1 = np.array(Z_stack[:, :, (x1 + x2) / 2])
-    lateral_cs2 = np.array(Z_stack[:, (y1 + y2) / 2, :])
+    lateral_cs1 = np.array(Z_stack[:, :, (x1 + x2) // 2])
+    lateral_cs2 = np.array(Z_stack[:, (y1 + y2) // 2, :])
 
     roi1 = lateral_cs1[:, y1:y2]
     roi2 = lateral_cs2[:, x1:x2]
