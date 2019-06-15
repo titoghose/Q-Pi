@@ -45,9 +45,12 @@ parser.add_argument("file_name", help="input .ND2 file")
 parser.add_argument("-lb", "--lowerbound", help="specify z slice where cell starts", type=int)
 parser.add_argument("-ub", "--upperbound", help="specify z slice where cell ends", type=int)
 parser.add_argument("-p", "--plot", help="option to plot the 3D reconstructed cell", action="store_true")
+parser.add_argument("-i", "--save_intermediate", help="option to save intermediate z-	slice outputs", action="store_true")
 args = parser.parse_args()
 
 # Global Variables
+mdir = ""
+slices = None
 img_dim = 0
 calib = 0
 num_stacks = 0
@@ -56,47 +59,17 @@ membrane_z = 0
 drawing = False
 cell_num = 0
 next_cell_flag = False
+target_ind = 0
 rect_color = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255),
 			  (255, 0, 255), (128, 0, 0), (0, 128, 0), (0, 0, 128), (128, 128, 0),
 			  (0, 128, 128), (128, 0, 128), (48, 130, 245), (60, 245, 210), (40, 110, 170)]
 cell_coords_x = [[0, 0]]
 cell_coords_y = [[0, 0]]
 bounding_box_ax = None
-yz_hline = None
-xz_hline = None
+bounding_box_img = None
+yz_hline, yz_vline, xz_hline, xz_vline = None, None, None, None
 xz_c1, xz_c2, yz_c1, yz_c2 = None, None, None, None
-
-
-# function to extract images to png format (NOT NEEDED)
-def extract_from_ND2(file_name, c):
-	global calib, num_stacks
-	print(file_name)
-	frames = ND2_Reader(file_name)
-	calib = float(frames.metadata['calibration_um'])
-
-	f = ''
-	if c == 1:
-		f = mDir + '/c1/'
-	else:
-		f = mDir + '/c2/'
-
-	frames.default_coords['c'] = c - 1
-
-	num_slices = frames[0].shape[0]
-	num_stacks = num_slices
-
-	try:
-		os.mkdir(f)
-		print("Extracting Slices for ", f)
-		for j, fr in enumerate(frames[0]):
-			fn = file_name.split('.')
-			# print(f + str(j) + '_' + fn[0].split('/')[1] + '.png')
-			plt.imsave(f + str(j) + '_' + fn[0].split('/')[1] + '.png', fr, cmap='gray')
-			# write_image(f + str(j) + '_' + fn[0].split('/')[1] + '.ti', fr)
-			print("Progress: [%f]" % ((100.0 * j) / num_slices))
-
-	except OSError:
-		None
+ax1, ax2 = None, None
 
 
 def extract_img(file_name, ch):
@@ -139,13 +112,11 @@ def extract_img(file_name, ch):
 
 	return img_dim, calib, num_stacks
 
-
 def line_select_callback(eclick, erelease):
 	global cell_coords_x, cell_coords_y, cell_num
 	cell_coords_x[cell_num][0], cell_coords_y[cell_num][0] = int(eclick.xdata), int(eclick.ydata)
 	cell_coords_x[cell_num][1], cell_coords_y[cell_num][1] = int(erelease.xdata), int(erelease.ydata)
 	print("(%d, %d) --> (%d, %d)" % (cell_coords_x[cell_num][0], cell_coords_y[cell_num][0], cell_coords_x[cell_num][1], cell_coords_y[cell_num][1]))
-
 
 def toggle_selector(event):
 	global cell_num, bounding_box_ax
@@ -167,28 +138,29 @@ def toggle_selector(event):
 		plt.draw()
 		plt.close()
 
-
 # function to handle matplotlib mouse press event
 def handle_matplotlib_mouse(event):
 	global membrane_z, yz_hline, xz_hline, ax1, ax2
-	membrane_z = event.ydata
-	yz_hline.remove()
-	xz_hline.remove()
-	yz_hline = ax1.axhline(y=event.ydata, c='xkcd:bright yellow', lw=0.5, linestyle='--')
-	xz_hline = ax2.axhline(y=event.ydata, c='xkcd:bright yellow', lw=0.5, linestyle='--')
-	plt.draw()
 
+	if event.inaxes in [ax1, ax2]:
+		membrane_z = event.ydata
+		yz_hline.remove()
+		xz_hline.remove()
+		yz_hline = ax1.axhline(y=event.ydata, c='xkcd:bright yellow', lw=0.5, linestyle='--')
+		xz_hline = ax2.axhline(y=event.ydata, c='xkcd:bright yellow', lw=0.5, linestyle='--')
+		plt.draw()
 
 def showC1C2(label):
 	global xz_c1, xz_c2, yz_c1, yz_c2
-	if label == 'C1':
+	print(label)
+	if label == 'Channel 1':
 		xz_c1.set_visible(not xz_c1.get_visible())
 		yz_c1.set_visible(not yz_c1.get_visible())
-	elif label == 'C2':
+	elif label == 'Channel 2':
 		xz_c2.set_visible(not xz_c2.get_visible())
 		yz_c2.set_visible(not yz_c2.get_visible())
+	plt.draw()
 	
-
 # function to plot meshgrid
 def plot_data(contours, cnt2, mem_z, draw_flag):
 	ch = ConvexHull(contours)
@@ -267,6 +239,20 @@ def plot_data(contours, cnt2, mem_z, draw_flag):
 
 	return ch
 
+def select_mid_file(event):
+	global bounding_box_ax, bounding_box_img, target_ind, slices, mdir
+	
+	if target_ind + event.step < 0:
+		target_ind = 0
+	elif target_ind + event.step > num_stacks - 1:
+		target_ind = num_stacks - 1 
+	else:
+		target_ind += int(event.step)
+	bounding_box_ax.cla()
+	img = plt.imread(mDir + '/c2/' + slices[target_ind])
+	bounding_box_img = bounding_box_ax.imshow(img, cmap='gray')
+	plt.draw()
+
 
 jb.start_vm(class_path=bf.JARS)
 file_name = args.file_name
@@ -297,16 +283,11 @@ else:
 
 # Loading the image corresponding middle value of upper and lower z inputs to enable bounding box drawing for cell
 # selection + resizing
-mid_file_name = mDir + '/c2/'
-slices = sorted(os.listdir(mDir + '/c2/'), key=lambda z: (int(re.sub('\D', '', z)), z))
-TargetInd = int((upper_bound - lower_bound) * 0.5) + lower_bound
-print("Target Index: ", TargetInd)
-for ind, i in enumerate(slices):
-	if ind == TargetInd:
-		mid_file_name += i
-		break
+slices = [x for x in sorted(os.listdir(mDir + '/c2/'), key=lambda z: (int(re.sub('\D', '', z)), z)) if "STACK" not in x]
 
-print(mid_file_name)
+target_ind = int((upper_bound - lower_bound) * 0.5) + lower_bound
+mid_file_name = mDir + '/c2/' + slices[target_ind]
+
 print("Microscope Calibration: ", calib)
 
 img = plt.imread(mid_file_name)
@@ -319,17 +300,21 @@ z_factor = 0.2
 
 # Handling drawing of bounding boxes
 img_copy = img.copy()
-fig = plt.figure()
-plt.imshow(img_copy, cmap='gray')
+bbox_fig = plt.figure()
 bounding_box_ax = plt.gca()
+bounding_box_img = bounding_box_ax.imshow(img_copy, cmap='gray')
 toggle_selector.RS = RectangleSelector(bounding_box_ax, line_select_callback, drawtype='box', useblit=True, interactive=True)
 toggle_selector.RS.to_draw.set_visible(True)
 plt.connect('key_press_event', toggle_selector)
+plt.connect('scroll_event', select_mid_file)
 plt.show()
 	
 # Store selected cell ROIs with attached timestamp
 timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%d%m%Y_%H%M%S')
-fig.savefig(mDir + '/' + str(timestamp) + 'roi.png', dpi=300)
+bbox_fig.savefig(mDir + '/' + str(timestamp) + '_roi.png', dpi=300)
+plt.close(bbox_fig)
+
+save_inter = args.save_intermediate
 
 # loop to handle multiple cells
 for cn in range(cell_num):
@@ -360,40 +345,45 @@ for cn in range(cell_num):
 
 	final_contours = np.array([])
 	prev_contour = None
+	
+
 	# looping through the z slices to extract cell countours in each slice
 	for ind, i in enumerate(sorted(os.listdir(mDir + '/c2/'), key=lambda z: (int(re.sub('\D', '', z)), z))):
 		if i.startswith('.') or i.endswith('.npy') or ind < lower_bound or ind > upper_bound:
 			continue
+
+		fig_x = plt.figure()		
+
 		img_nocrop = cv2.imread(mDir + '/c2/' + i)
-		# img = img_nocrop[682:776, 86:174, 0]
 		img = img_nocrop[iy:fy, ix:fx, 0]
 		cropped_img = img
-		# cv2.imwrite(contourLines_dir + '/cropped_img_' + i, cv2.resize(cropped_img, (0, 0), fx=3.0, fy=3.0))
+		axs1 = fig_x.add_subplot(231)
+		axs1.imshow(cv2.resize(cropped_img, (0, 0), fx=3.0, fy=3.0), cmap='gray')
 
 		img = cv2.bilateralFilter(img, 5, 75, 75)
 		filtered_img = img
-		# cv2.imwrite(contourLines_dir + '/bilateral_' + i, cv2.resize(filtered_img, (0, 0), fx=3.0, fy=3.0))
+		axs2 = fig_x.add_subplot(232)
+		axs2.imshow(cv2.resize(filtered_img, (0, 0), fx=3.0, fy=3.0), cmap='gray')
 
 		img = cv2.equalizeHist(img)
 		equ_img = img
 		# cv2.imwrite(contourLines_dir + '/histeq_' + i, cv2.resize(equ_img, (0, 0), fx=3.0, fy=3.0))
 
-		# equ = cv2.GaussianBlur(equ, (3, 3), 0
-		# plt.hist(equ.ravel(), 256, [0, 256])
-		# plt.show()
-
 		ret2, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 		thresh_img = img
-		# cv2.imwrite(contourLines_dir + '/thresh_' + i, cv2.resize(thresh_img, (0, 0), fx=3.0, fy=3.0))
+		axs3 = fig_x.add_subplot(233)
+		axs3.imshow(cv2.resize(thresh_img, (0, 0), fx=3.0, fy=3.0), cmap='gray')
 
 		k1 = np.ones((3, 3))
 		img = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel=k1)
 		open_img = img
-		# cv2.imwrite(contourLines_dir + '/open_' + i, cv2.resize(open_img, (0, 0), fx=3.0, fy=3.0))
+		axs4 = fig_x.add_subplot(234)
+		axs4.imshow(cv2.resize(open_img, (0, 0), fx=3.0, fy=3.0), cmap='gray')
 
 		img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel=k1)
 		close_img = img
-		# cv2.imwrite(contourLines_dir + '/close_' + i, cv2.resize(close_img, (0, 0), fx=3.0, fy=3.0))
+		axs5 = fig_x.add_subplot(235)
+		axs5.imshow(cv2.resize(close_img, (0, 0), fx=3.0, fy=3.0), cmap='gray')
 
 		# finding contours (array of 2d coordinates) of cell
 		_, contours, hierarchy = cv2.findContours(img, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_TC89_L1)
@@ -427,7 +417,8 @@ for cn in range(cell_num):
 			new_contours = np.squeeze(np.array(contours[max_ind]))
 			img_cont = cv2.drawContours(cv2.cvtColor(cropped_img, cv2.COLOR_GRAY2BGR), [new_contours], -1, (0, 255, 0),
 										1)
-			# cv2.imwrite(contourLines_dir + '/contour_' + i, cv2.resize(img_cont, (0, 0), fx=3.0, fy=3.0))
+			axs6 = fig_x.add_subplot(236)
+			axs6.imshow(cv2.resize(img_cont, (0, 0), fx=3.0, fy=3.0))
 
 		# fitting the closest ellipse (approximation) to the contours in order to take care of cell boundaries that might
 		# not have been picked up
@@ -457,6 +448,10 @@ for cn in range(cell_num):
 				else:
 					final_contours = np.vstack((final_contours, new_contours))
 
+		if save_inter:
+			fig_x.savefig(contourLines_dir + '/slice_' + i, dpi=300)
+		plt.close(fig_x)
+
 	# fitting convex hull on points forming final_contours
 	conv_hull_full = plot_data(final_contours, None, -1, False)
 
@@ -478,13 +473,12 @@ for cn in range(cell_num):
 
 	# figure to show z stack and point out z = membrane
 	fig = plt.figure()
-	fig.canvas.mpl_connect('button_press_event', handle_matplotlib_mouse)
 
 	ax1 = fig.add_subplot(211)
 	ax1.imshow(np.zeros(yz_cross_sec["c1"].shape), cmap='gray')
 	yz_c1 = ax1.imshow(yz_cross_sec["c1"], cmap=green_cmap)
 	yz_c2 = ax1.imshow(yz_cross_sec["c2"], cmap=red_cmap)
-	ax1.axvline(x=((iy+fy)//2), c='xkcd:red')
+	yz_vline = ax1.axvline(x=((iy+fy)//2), c='xkcd:red')
 	yz_hline = ax1.axhline(y=z_level, c='xkcd:bright yellow', lw=0.5, linestyle='--')
 	ax1.set_aspect(1.5)
 
@@ -492,14 +486,14 @@ for cn in range(cell_num):
 	ax2.imshow(np.zeros(xz_cross_sec["c1"].shape), cmap='gray')
 	xz_c1 = ax2.imshow(xz_cross_sec["c1"], cmap=green_cmap)
 	xz_c2 = ax2.imshow(xz_cross_sec["c2"], cmap=red_cmap)
-	ax2.axvline(x=((ix+fx)//2), c='xkcd:red')
+	xz_vline = ax2.axvline(x=((ix+fx)//2), c='xkcd:red')
 	xz_hline = ax2.axhline(y=z_level, c='xkcd:bright yellow', lw=0.5, linestyle='--')
 	ax2.set_aspect(1.5)
 
 	rax = plt.axes([0.05, 0.4, 0.1, 0.15])
-	check = CheckButtons(rax, ('C1', 'C2'), (True, True))
+	check = CheckButtons(rax, ('Channel 1', 'Channel 2'), (True, True))
 	check.on_clicked(showC1C2)
-
+	fig.canvas.mpl_connect('button_press_event', handle_matplotlib_mouse)
 	plt.show()
 
 	membrane_z = int(round(membrane_z, 0))
