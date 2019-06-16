@@ -5,7 +5,7 @@ Q-Pi is an algorithm designed for enhanced visualisation and high-throughput qua
 This program supports various input formats. The input file is expected to be a z-stack containing two channels - membrane and channel respectively, where channel 1 is the membrane, and channel 2 is the cell. Input file format is any microscopy image format supported by **python-bioformats** and can be checked [here](https://docs.openmicroscopy.org/bio-formats/5.8.1/supported-formats.html).
 
 # Sample Data
-A **sample data file** generated from NIKON _NIS Elements_ suite can be found [here](https://drive.google.com/open?id=1--SQ_OiZU9fH9Ob6OwfODR9Rdu5TCs_f). 
+A **sample data file** generated from NIKON _NIS Elements_ suite can be found [here](https://drive.google.com/open?id=1--SQ_OiZU9fH9Ob6OwfODR9Rdu5TCs_f).
 
 It can be viewed using the **NIS Elements Viewer** (only on Mac OS and Windows) which can be downloaded from [here](https://www.nikoninstruments.com/Products/Software/NIS-Elements-Advanced-Research/NIS-Elements-Viewer).
 
@@ -30,14 +30,14 @@ Follow these steps sequentially to setup the system to run Q-Pi:
 3. Install Python 3.x on the system. The Anaconda 3 distribution is recommended because some 3D visualization libraries may create issues with installation on a normal Python distribution. The link to download it is given below.
      * [Windows Anaconda 3](https://www.anaconda.com/distribution/)
 
-4. Download this repository (link on top of page) and extract the files at a desired location on your system. Now follow these steps: 
+4. Download this repository (link on top of page) and extract the files at a desired location on your system. Now follow these steps:
    * From the start menu, open an **Anaconda Prompt**
-   * Navigate to the Q-Pi folder on your system and find the **qpi_windows_installation.bat** file. 
-   * Hold down the *Shift* key and *right-click* the file. Select the *Copy as path* option and paste it on the **Anaconda Prompt** opened earlier. 
-   * Press *Enter* to execute the command. 
+   * Navigate to the Q-Pi folder on your system and find the **qpi_windows_installation.bat** file.
+   * Hold down the *Shift* key and *right-click* the file. Select the *Copy as path* option and paste it on the **Anaconda Prompt** opened earlier.
+   * Press *Enter* to execute the command.
    * Wait for all the python libraries to get installed on your system. This may take some time.
 
-After executing these steps, Q-Pi should be ready to run on the Windows system. Make sure the steps were executed sequentially. 
+After executing these steps, Q-Pi should be ready to run on the Windows system. Make sure the steps were executed sequentially.
 
 
 ## Linux installation
@@ -46,10 +46,10 @@ Download or Clone this repository. Open a terminal, navigate inside the Q-Pi fol
 
     ```
     chmod +x qpi_linux_installation.sh
-    ./qpi_linux_installation
+    ./qpi_linux_installation.sh
     ```
 
-After executing these steps, Q-Pi should be ready to run on the Linux system. Make sure the steps were executed sequentially. 
+After executing these steps, Q-Pi should be ready to run on the Linux system. Make sure the steps were executed sequentially.
 
 # Using Q-Pi
 
@@ -72,7 +72,7 @@ python qpi.py [Data/file_name.nd2] -lb [LB] -ub [UB] -p
 ```
 
 These are optional arguments and mean the following:
-* **-lb:** Lower bound of the z slices where the cell is expected to start from. This can be used when there is fluorescence reflection below the actual bottom of the cell. 
+* **-lb:** Lower bound of the z slices where the cell is expected to start from. This can be used when there is fluorescence reflection below the actual bottom of the cell.
 * **-ub:** Upper bound of the z slices where the cell is expected to end. This can be used when there is fluorescence reflection above the actual top of the cell.
 * **-p:** Plot the 3D reconstruction of the cell and the membrane. If not mentioned, the cell will not be plotted, only quantification will be done.
 * **-i:** Plot the intermediate image processing applied on the different z slices. If not mentioned, these plots will not be generated.
@@ -95,15 +95,15 @@ python qpi.py Data/2036_quantify.nd2 -lb 23 -ub 116 -p
 
 1. Wait till the files are extracted and a z-slice is displayed on the screen. The window can be resized to own convenience.
 
-2. Using your mouse, draw the bounding boxes (ROI) around the cells you wish to analyse. Keep a small margin between the cell and the ROI.  When happy with an ROI, press the key **N** on your keyboard to draw the next one. Once done drawing, press the key **X** to submit the selections. 
-   
-   **NOTE:** Scrolling up and down will change the z-slice displayed. 
+2. Using your mouse, draw the bounding boxes (ROI) around the cells you wish to analyse. Keep a small margin between the cell and the ROI.  When happy with an ROI, press the key **N** on your keyboard to draw the next one. Once done drawing, press the key **X** to submit the selections.
+
+   **NOTE:** Scrolling up and down will change the z-slice displayed.
 
 3. The program will sequentially analyse each cell. See terminal for intermediate output information.
 
-4. The lateral cross section of the ZX and ZY planes of the Z-Stack will pop up with the auto selected membrane level. If not satisfied with the selection, you can manually use your mouse to select the correct level. Close the window to finalise selection. 
-   
-   **NOTE:** The check buttons can be used to hide or show a particular channel. 
+4. The lateral cross section of the ZX and ZY planes of the Z-Stack will pop up with the auto selected membrane level. If not satisfied with the selection, you can manually use your mouse to select the correct level. Close the window to finalise selection.
+
+   **NOTE:** The check buttons can be used to hide or show a particular channel.
 
 5. If **-p** option was selected then wait for cell to be plotted without membrane first and then with the membrane at the correct level.
 
