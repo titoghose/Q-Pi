@@ -2,14 +2,14 @@
 :: install Visual Studio C++ Build Tools
 
 :: installing python dependencies
-pip install numpy 
-pip install scipy 
-pip install matplotlib 
-pip install "opencv-python>=3.3.0.0"
-pip install pims_nd2
-pip install python-bioformats   
-pip install vtk
-pip install envisage
+pip install --user numpy 
+pip install --user scipy 
+pip install --user matplotlib 
+pip install --user "opencv-python>=3.3.0.0"
+pip install --user pims_nd2
+pip install --user python-bioformats   
+pip install --user vtk
+pip install --user envisage
 
 :: installing Mayavi (3D visualization library for python)
-pip install mayavi
+pip install --user mayavi
