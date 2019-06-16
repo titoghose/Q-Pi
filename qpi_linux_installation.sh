@@ -15,8 +15,8 @@ apt install python3-pyqt4
 # clear
 
 printf "Installing python dependencies \n\n"
-pip3 install numpy scipy matplotlib opencv-python>=3.3.0.0 pims_nd2 python-bioformats vtk envisage
+pip3 install --user numpy scipy matplotlib opencv-python>=3.3.0.0 pims_nd2 python-bioformats vtk envisage
 # clear
 
 printf "Installing Mayavi (3D visualization library for python) \n\n"
-pip3 install mayavi
+pip3 install --user mayavi
