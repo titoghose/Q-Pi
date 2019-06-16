@@ -42,22 +42,7 @@ After executing these steps, Q-Pi should be ready to run on the Windows system. 
 
 ## Linux installation
 
-Follow these steps sequentially to setup the system on Linux to run Q-Pi:
-
-1. Open a terminal and execute the following commands:
-
-    ```
-   sudo apt-get update
-   sudo apt install python3-pip
-    ```
-    In case pip for Python 3 is already installed, you can skip this step.
-
-2. Install Java Development Kit 8 on the system. In order to do so, run the following command on the terminal:
-    ```
-    apt-get install openjdk-8-jdk
-    ```
-
-3. Download or Clone this repository. Open a terminal, navigate inside the Q-Pi folder and execute the following steps to install all the dependencies for python:
+Download or Clone this repository. Open a terminal, navigate inside the Q-Pi folder and execute the following steps to install all the dependencies for python:
 
     ```
     chmod +x qpi_linux_installation.sh
