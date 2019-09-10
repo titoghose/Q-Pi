@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "C:\\Users\\Rito\\Anaconda3\\python.exe",
+    "python.pythonPath": "/home/upamanyu/anaconda3/envs/env1/bin/python",
     "python.linting.pylintEnabled": true,
     "python.linting.flake8Enabled": false,
     "python.linting.enabled": true

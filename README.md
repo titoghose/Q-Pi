@@ -44,10 +44,10 @@ After executing these steps, Q-Pi should be ready to run on the Windows system. 
 
 Download or Clone this repository. Open a terminal, navigate inside the Q-Pi folder and execute the following steps to install all the dependencies for python:
 
-    ```
-    chmod +x qpi_linux_installation.sh
-    ./qpi_linux_installation.sh
-    ```
+```shell
+chmod +x qpi_linux_installation.sh
+./qpi_linux_installation.sh
+```
 
 After executing these steps, Q-Pi should be ready to run on the Linux system. Make sure the steps were executed sequentially.
 
@@ -59,7 +59,7 @@ Now to run the code, open a terminal (Linux) or anaconda prompt (Windows) inside
 
 **NOTE:** All the *python* commands refer to Python 3 and not Python 2.
 
-```
+```shell
 python qpi.py [file_name]
 ```
 
@@ -67,7 +67,7 @@ python qpi.py [file_name]
 
 A few advanced optional user-based modifications are available:
 
-```
+```shell
 python qpi.py [Data/file_name.nd2] -lb [LB] -ub [UB] -p
 ```
 
@@ -79,13 +79,13 @@ These are optional arguments and mean the following:
 
 The following command can be used to get help with these options while running the program:
 
-```
+```shell
 python qpi.py --help
 ```
 
 ## Running Q-Pi on the sample data file
 
-```
+```shell
 python qpi.py Data/2036_quantify.nd2 -lb 23 -ub 116 -p
 ```
 

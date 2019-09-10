@@ -1,26 +1,32 @@
-import gc
 import re
-import cv2
 import os
+import gc
+import time
 import shutil
 import argparse
 import datetime
+from xml.etree import ElementTree as ETree
+
+import cv2
+
 import numpy as np
-import time
-from mayavi import mlab
-from pims import ND2_Reader
-import matplotlib.pyplot as plt
-import matplotlib.pylab as pl
-from matplotlib.colors import ListedColormap
 from scipy.spatial import ConvexHull
+
 import javabridge as jb
 import bioformats as bf
-from xml.etree import ElementTree as ETree
-from matplotlib.widgets import RectangleSelector
+from pims import ND2_Reader
+
+from mayavi import mlab
+
+import matplotlib.pylab as pl
+import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from matplotlib.widgets import CheckButtons
+from matplotlib.colors import ListedColormap
+from matplotlib.widgets import RectangleSelector
 
 from zstack_formation import create_z_stack
+
 
 cmap = pl.cm.Reds
 red_cmap = cmap(np.arange(cmap.N))
@@ -45,7 +51,7 @@ parser.add_argument("file_name", help="input .ND2 file")
 parser.add_argument("-lb", "--lowerbound", help="specify z slice where cell starts", type=int)
 parser.add_argument("-ub", "--upperbound", help="specify z slice where cell ends", type=int)
 parser.add_argument("-p", "--plot", help="option to plot the 3D reconstructed cell", action="store_true")
-parser.add_argument("-i", "--save_intermediate", help="option to save intermediate z-	slice outputs", action="store_true")
+parser.add_argument("-i", "--save_intermediate", help="option to save intermediate z slice outputs", action="store_true")
 args = parser.parse_args()
 
 # Global Variables
@@ -107,6 +113,8 @@ def extract_img(file_name, ch):
 			print("Progress: [%f]" % ((100.0 * j) / num_stacks), end="\r")
 	except OSError:
 		print("Found slices at:", f)
+
+	gc.collect()
 
 	return img_dim, calib, num_stacks
 
@@ -233,7 +241,7 @@ def plot_data(contours, cnt2, mem_z, draw_flag):
 		mlab.close()
 		mlab.close(all=True)
 
-		gc.collect()
+	gc.collect()
 
 	return ch
 
@@ -250,6 +258,7 @@ def select_mid_file(event):
 	img = plt.imread(mDir + '/c2/' + slices[target_ind])
 	bounding_box_img = bounding_box_ax.imshow(img, cmap='gray')
 	plt.draw()
+	gc.collect()
 
 
 jb.start_vm(class_path=bf.JARS)
@@ -315,31 +324,28 @@ plt.close(bbox_fig)
 save_inter = args.save_intermediate
 
 # loop to handle multiple cells
+
 for cn in range(cell_num):
-	print("CELL NUMBER: ", cn + 1)
+	final_op_string = ''
+	print('CELL NUMBER: %d' % (cn + 1))
 	iy = cell_coords_y[cn][0]
 	fy = cell_coords_y[cn][1]
 	ix = cell_coords_x[cn][0]
 	fx = cell_coords_x[cn][1]
 	roi_centre = [(ix + fx) / 2, (iy + fy) / 2]
-	print("Centre of bounding box: (%3f, %3f)" % (roi_centre[0], roi_centre[1]))
+	print('Centre of bounding box: (%3f, %3f)' % (roi_centre[0], roi_centre[1]))
+	final_op_string += 'Centre of bounding box: (%3f, %3f)' % (roi_centre[0], roi_centre[1])
 
 	# create directories to save intermediate output
-	cell_dir = mDir + '/cell_' + str(ix) + '_' + str(iy) + '/'
-	postProcessing_dir = cell_dir + '/postprocessing'
-	contourLines_dir = cell_dir + '/contourLines'
-	filtered_dir = cell_dir + '/filtered'
+	cell_dir = mDir + '/cell_' + str(ix) + '_' + str(iy)
+	intermediate_op_dir = cell_dir + '/intermediateOutputs'
 	try:
 		os.mkdir(cell_dir)
-		os.mkdir(postProcessing_dir)
-		os.mkdir(contourLines_dir)
-		os.mkdir(filtered_dir)
+		os.mkdir(intermediate_op_dir)
 	except OSError:
 		shutil.rmtree(cell_dir)
 		os.mkdir(cell_dir)
-		os.mkdir(postProcessing_dir)
-		os.mkdir(contourLines_dir)
-		os.mkdir(filtered_dir)
+		os.mkdir(intermediate_op_dir)
 
 	final_contours = np.array([])
 	prev_contour = None
@@ -384,7 +390,7 @@ for cn in range(cell_num):
 		axs5.imshow(cv2.resize(close_img, (0, 0), fx=3.0, fy=3.0), cmap='gray')
 
 		# finding contours (array of 2d coordinates) of cell
-		_, contours, hierarchy = cv2.findContours(img, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_TC89_L1)
+		contours, hierarchy = cv2.findContours(img, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_TC89_L1)
 
 		# initializing array to store new contours after filtering out ones with too less area i.e noise
 		new_contours = np.array([])
@@ -428,7 +434,7 @@ for cn in range(cell_num):
 
 			img = cv2.cvtColor(ellipse_img, cv2.COLOR_BGR2GRAY)
 
-			_, contours, hierarchy = cv2.findContours(img, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_SIMPLE)
+			contours, hierarchy = cv2.findContours(img, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_SIMPLE)
 			img_temp = np.zeros((img.shape[0], img.shape[1], 3), dtype='uint8')
 			ellipse_img = cv2.drawContours(img_temp, contours, 0, (0, 0, 255), 1)
 
@@ -447,7 +453,7 @@ for cn in range(cell_num):
 					final_contours = np.vstack((final_contours, new_contours))
 
 		if save_inter:
-			fig_x.savefig(contourLines_dir + '/slice_' + i, dpi=300)
+			fig_x.savefig(intermediate_op_dir + '/slice_' + i, dpi=300)
 		plt.close(fig_x)
 
 	# fitting convex hull on points forming final_contours
@@ -467,8 +473,8 @@ for cn in range(cell_num):
 	except OSError:
 		print("Issue in z-stack creation")
 
-	print('Membrane Z level selected: ', z_level)
-
+	print('Membrane Z level selected: %d' % (z_level))
+	final_op_string += '\nMembrane Z level selected: %d' % (z_level)
 	# figure to show z stack and point out z = membrane
 	fig = plt.figure()
 
@@ -527,9 +533,15 @@ for cn in range(cell_num):
 		tot_vol = conv_hull_full.volume * x_factor * y_factor * z_factor
 		vol_under_mem = 0
 
-	print('Total Volume: ', tot_vol)
-	print('Volume Under Membrane: ', vol_under_mem)
-	print('Percentage of cell under membrane: ', ((vol_under_mem / tot_vol) * 100))
+
+	final_op_string += '\nTotal Volume: %.3f' % (tot_vol)
+	final_op_string += '\nVolume Under Membrane: %.3f' % (vol_under_mem)
+	final_op_string += '\nPercentage of cell under membrane: %.2f' % ((vol_under_mem / tot_vol) * 100)
+	print(final_op_string)
+	with open(cell_dir + '/analysis_output.txt', 'a') as f:
+		f.write(final_op_string)
+		f.write('\n')
+
 	print()
 	print()
 	gc.collect()
