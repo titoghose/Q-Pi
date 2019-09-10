@@ -91,8 +91,6 @@ def extract_img(file_name, ch):
 
 	ir = bf.ImageReader(path=file_name)
 
-	os.system("clear")
-
 	f = ''
 	if ch == 1:
 		f = mDir + '/c1/'
@@ -120,7 +118,7 @@ def line_select_callback(eclick, erelease):
 
 def toggle_selector(event):
 	global cell_num, bounding_box_ax
-	
+
 	left_corner = (cell_coords_x[cell_num][0], cell_coords_y[cell_num][0])
 	width = cell_coords_x[cell_num][1]-cell_coords_x[cell_num][0]
 	height = cell_coords_y[cell_num][1]-cell_coords_y[cell_num][0]
@@ -146,8 +144,8 @@ def handle_matplotlib_mouse(event):
 		membrane_z = event.ydata
 		yz_hline.remove()
 		xz_hline.remove()
-		yz_hline = ax1.axhline(y=event.ydata, c='xkcd:bright yellow', lw=0.5, linestyle='--')
-		xz_hline = ax2.axhline(y=event.ydata, c='xkcd:bright yellow', lw=0.5, linestyle='--')
+		yz_hline = ax1.axhline(y=event.ydata, c='xkcd:white', lw=1.5, linestyle='--')
+		xz_hline = ax2.axhline(y=event.ydata, c='xkcd:white', lw=1.5, linestyle='--')
 		plt.draw()
 
 def showC1C2(label):
@@ -160,7 +158,7 @@ def showC1C2(label):
 		xz_c2.set_visible(not xz_c2.get_visible())
 		yz_c2.set_visible(not yz_c2.get_visible())
 	plt.draw()
-	
+
 # function to plot meshgrid
 def plot_data(contours, cnt2, mem_z, draw_flag):
 	ch = ConvexHull(contours)
@@ -241,11 +239,11 @@ def plot_data(contours, cnt2, mem_z, draw_flag):
 
 def select_mid_file(event):
 	global bounding_box_ax, bounding_box_img, target_ind, slices, mdir
-	
+
 	if target_ind + event.step < 0:
 		target_ind = 0
 	elif target_ind + event.step > num_stacks - 1:
-		target_ind = num_stacks - 1 
+		target_ind = num_stacks - 1
 	else:
 		target_ind += int(event.step)
 	bounding_box_ax.cla()
@@ -275,7 +273,7 @@ if args.lowerbound is not None:
 	lower_bound = args.lowerbound
 else:
 	lower_bound = 0
-	
+
 if args.upperbound is not None:
 	upper_bound = args.upperbound
 else:
@@ -308,7 +306,7 @@ toggle_selector.RS.to_draw.set_visible(True)
 plt.connect('key_press_event', toggle_selector)
 plt.connect('scroll_event', select_mid_file)
 plt.show()
-	
+
 # Store selected cell ROIs with attached timestamp
 timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%d%m%Y_%H%M%S')
 bbox_fig.savefig(mDir + '/' + str(timestamp) + '_roi.png', dpi=300)
@@ -345,14 +343,14 @@ for cn in range(cell_num):
 
 	final_contours = np.array([])
 	prev_contour = None
-	
+
 
 	# looping through the z slices to extract cell countours in each slice
 	for ind, i in enumerate(sorted(os.listdir(mDir + '/c2/'), key=lambda z: (int(re.sub('\D', '', z)), z))):
 		if i.startswith('.') or i.endswith('.npy') or ind < lower_bound or ind > upper_bound:
 			continue
 
-		fig_x = plt.figure()		
+		fig_x = plt.figure()
 
 		img_nocrop = cv2.imread(mDir + '/c2/' + i)
 		img = img_nocrop[iy:fy, ix:fx, 0]
@@ -479,7 +477,7 @@ for cn in range(cell_num):
 	yz_c1 = ax1.imshow(yz_cross_sec["c1"], cmap=green_cmap)
 	yz_c2 = ax1.imshow(yz_cross_sec["c2"], cmap=red_cmap)
 	yz_vline = ax1.axvline(x=((iy+fy)//2), c='xkcd:red')
-	yz_hline = ax1.axhline(y=z_level, c='xkcd:bright yellow', lw=0.5, linestyle='--')
+	yz_hline = ax1.axhline(y=z_level, c='xkcd:white', lw=1.5, linestyle='--')
 	ax1.set_aspect(1.5)
 
 	ax2 = fig.add_subplot(212)
@@ -487,7 +485,7 @@ for cn in range(cell_num):
 	xz_c1 = ax2.imshow(xz_cross_sec["c1"], cmap=green_cmap)
 	xz_c2 = ax2.imshow(xz_cross_sec["c2"], cmap=red_cmap)
 	xz_vline = ax2.axvline(x=((ix+fx)//2), c='xkcd:red')
-	xz_hline = ax2.axhline(y=z_level, c='xkcd:bright yellow', lw=0.5, linestyle='--')
+	xz_hline = ax2.axhline(y=z_level, c='xkcd:white', lw=1.5, linestyle='--')
 	ax2.set_aspect(1.5)
 
 	rax = plt.axes([0.05, 0.4, 0.1, 0.15])
