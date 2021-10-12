@@ -1,7 +1,7 @@
 numpy
 scipy
 matplotlib
-opencv-python==3.3.0.0
+opencv-python==3.3.1.11
 pims_nd2
 python-bioformats
 vtk
